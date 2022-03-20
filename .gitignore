@@ -1,0 +1,5 @@
+# ignore ALL files in ANY directory named temp
+feat_extract/data/
+feat_extract/track_text/
+feat_extract/csv_files/
+feat_extract/feature/
