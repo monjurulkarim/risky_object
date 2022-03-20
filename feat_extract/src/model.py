@@ -34,7 +34,7 @@ device = ("cuda" if torch.cuda.is_available() else "cpu")
 class FeatureExtractor(nn.Module):
     def __init__(self):
         super(FeatureExtractor, self).__init__()
-        self.net = models.resnet50(pretrained=True)
+        self.net = models.resnet50(pretrained=True) #TO-Do: Resnet 101
         self.dim_feat = 2048
 
     def forward(self, input):

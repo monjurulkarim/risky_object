@@ -60,7 +60,7 @@ def main():
     feature_dir = args.feature_dir
     csv_files = natsorted(glob.glob(os.path.join(csv_dir, '*.csv')))
     # print(csv_files)
-    scaling = 3.21
+    scaling = 3.21 # 720/224
 
     for i in csv_files:
         detections =  np.zeros((100,30,6),dtype=np.float32) # 100 frames, 30 maximum objects, 6: 1-> track_id, (2,3,4,5)-> (y1,x1;y2,x2), 6-> object serial number in each frame
@@ -91,11 +91,11 @@ def main():
             if row['object_num'] > 29:
                 continue
             else:
-                bbox = [int((row['y1'])//scaling), int((row['x1'])//scaling), int((row['y2'])//scaling), int((row['x2'])//scaling)]
+                bbox = [int((row['y1'])//scaling), int((row['x1'])//scaling), int((row['y2'])//scaling), int((row['x2'])//scaling)] #resizing as per the scaling factor
                 # print(bbox)
                 object_img = bbox_to_imroi(video_frame,bbox)
                 object_img = to_pil_image(object_img)
-                object_feat = featureExt(object_img) # 1x512
+                object_feat = featureExt(object_img) # 1x2048
                 # object_feat = object_feat.detach().numpy()
                 object_feat = object_feat.cpu().numpy() if object_feat.is_cuda else object_feat.detach().numpy()
 
