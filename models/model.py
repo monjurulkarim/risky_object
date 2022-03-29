@@ -13,19 +13,24 @@ import sys
 
 
 class GRUNet(nn.Module):
-    def __init__(self, input_dim, hidden_dim, n_layers):
+    def __init__(self, input_dim, hidden_dim, output_dim, n_layers):
         super(GRUNet, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.gru = nn.GRU(input_dim, hidden_dim, n_layers, batch_first=True)
+        self.dense1 = torch.nn.Linear(hidden_dim, 64)
+        self.dense2 = torch.nn.Linear(64, output_dim)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x, h):
         out, h = self.gru(x, h)
         # out = F.dropout(out[:, -1], self.dropout[0])
-        # out = self.relu(self.dense1(out))
+        out = self.relu(self.dense1(out))
         # out = F.dropout(out, self.dropout[1])
-        # out = self.dense2(out)
-        return h
+        out = self.dense2(out)
+        out = self.sigmoid(out)  # TO-Do: Check without using it
+        return out, h
 
 
 class RiskyObject(nn.Module):
@@ -38,7 +43,8 @@ class RiskyObject(nn.Module):
         self.n_frames = n_frames
         self.n_layers = 1
         self.phi_x = nn.Sequential(nn.Linear(x_dim, h_dim), nn.ReLU())
-        self.gru_net = GRUNet(h_dim+h_dim, h_dim, self.n_layers)
+        self.gru_net = GRUNet(h_dim+h_dim, h_dim, 1, self.n_layers)
+        self.bce_loss = torch.nn.BCELoss()
 
     def forward(self, x, y, toa, hidden_in=None, testing=False):
         """
@@ -47,11 +53,14 @@ class RiskyObject(nn.Module):
         :toa (batchsize, 1)
         :batchsize = 1, currently we support batchsize=1
         """
+        losses = {'cross_entropy': 0}
         h = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
                      )  # TO-DO: hidden_in like dsta
         h = h.to(x.device)
         h_all_in = {}
         h_all_out = {}
+        all_outputs = []
+        all_labels = []
         for t in range(x.size(1)):
             # projecting to a lower dimensional space
             # 2048 --> 256
@@ -70,6 +79,9 @@ class RiskyObject(nn.Module):
             x_t = torch.cat([obj_embed, img_embed], dim=-1)  # 1 x 30 x 512
 
             h_all_out = {}
+            frame_outputs = []
+            frame_labels = []
+            # frame_loss = []
             for bbox in range(30):
                 if y[0][t][bbox][0] == 0:
                     continue
@@ -81,7 +93,13 @@ class RiskyObject(nn.Module):
                         x_obj = x_t[0][bbox]  # 4096 # x_t[batch][frame][bbox]
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 512
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 1 x 512
-                        h_out = self.gru_net(x_obj, h_in)  # 1x1x256
+                        output, h_out = self.gru_net(x_obj, h_in)  # 1x1x256
+                        loss = self.bce_loss(output, y[0][t][bbox][5])
+                        losses['cross_entropy'] += loss
+                        # frame_loss.append(loss)
+                        # print('tracked output: ', output)
+                        frame_outputs.append(output)
+                        frame_labels.append(y[0][t][bbox][5])
                         h_all_out[track_id] = h_out  # storing in a dictionary
                     else:  # If object was not found in the previous frame
                         h_in = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
@@ -91,12 +109,35 @@ class RiskyObject(nn.Module):
                         x_obj = x_t[0][bbox]  # 512
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 512
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 1 x 512
-                        h_out = self.gru_net(x_obj, h_in)  # 1x1x256
+                        output, h_out = self.gru_net(x_obj, h_in)  # 1x1x256
+                        loss = self.bce_loss(output, y[0][t][bbox][5])
+                        losses['cross_entropy'] += loss
+                        # frame_loss.append(loss)
+                        frame_outputs.append(output)
+                        frame_labels.append(y[0][t][bbox][5])
                         h_all_out[track_id] = h_out  # storing in a dictionary
+            print('=================')
+            # print('frame  :', t)
+            # # print('all labels: ', frame_labels)
+            # # print('--')
+            # # print('all outputs: ', frame_outputs)
+            # print('--')
+            # print('loss : ', losses['cross_entropy'])
+            # if len(frame_loss) == 0:
+            #     frame_loss = torch.zeros(1).to(x.device)
+            #     print('frame loss: ', frame_loss)
+            # else:
+            #     l = sum(frame_loss)
+            #     print('frame loss: ', l/len(frame_loss))
+            # loss = self.bce_loss(frame_outputs[:], frame_labels[:])
+
+            # print('=================')
+            all_outputs.append(frame_outputs)
+            all_labels.append(frame_labels)
             h_all_in = {}
             h_all_in = h_all_out.copy()
-            if t == 99:
-                print('break')
-                sys.exit(0)
+            # if t == 99:
+            #     print('break')
+            #     sys.exit(0)
 
-        return x, y, toa
+        return losses, all_outputs, all_labels

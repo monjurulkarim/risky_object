@@ -42,7 +42,7 @@ for e in range(2):
     print('Epoch: %d' % (e))
     for i, (batch_xs, batch_det, batch_toas) in tqdm(enumerate(traindata_loader), total=len(traindata_loader)):
         if i == 0:
-            x, y, toa = model(batch_xs, batch_det, batch_toas)
-            print('feature dim:', x.size())
-            print('detection dim:', y.size())
-            print('toas dim:', toa.size())
+            losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
+            # print('feature dim:', x.size())
+            # print('detection dim:', y.size())
+            # print('toas dim:', toa.size())
