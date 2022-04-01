@@ -5,23 +5,93 @@ from __future__ import print_function
 import torch
 from torch.utils.data import DataLoader
 from models.model import RiskyObject
+from models.evaluation import evaluation, plot_curve
 from dataloader import MyDataset
 import argparse
 from tqdm import tqdm
 import os
+from tensorboardX import SummaryWriter
+import numpy as np
+
+
+def write_scalars(logger, epoch, losses, lr):
+    # fetch results
+    cross_entropy = losses['cross_entropy'].mean()
+    # write to tensorboardX
+    logger.add_scalars('train/loss', {'Loss': cross_entropy}, epoch)
+    logger.add_scalars("train/lr", {'lr': lr}, epoch)
+
+
+def write_test_scalars(logger, epoch, losses, roc_auc):
+    cross_entropy = losses.mean()
+    logger.add_scalars('test/loss', {'Loss': cross_entropy}, epoch)
+    logger.add_scalars('test/roc_auc', {'roc_auc': roc_auc}, epoch)
+    # logger.add_scalars('test/fpr', {'fpr': fpr}, epoch)
+    # logger.add_scalars('test/fpr', {'tpr': tpr}, epoch)
+
+
+def write_pr_curve_tensorboard(logger, test_probs, test_label):
+    '''
+    Takes in a "class_index" from 0 to 9 and plots the corresponding
+    precision-recall curve
+    '''
+    # tensorboard_truth = test_label == class_index
+    tensorboard_truth = np.array(test_label)
+    tensorboard_probs = np.array([test_probs[i][0] for i in range(len(test_probs))])
+
+    # tensorboard_probs = test_probs[:, 1]
+    # print(test_probs)
+    # print(test_label[2])
+    classes = ['no_risk', 'risk']
+
+    logger.add_pr_curve(classes[1],
+                        tensorboard_truth,
+                        tensorboard_probs)
+                        # global_step=global_step)
+
+
+
+def write_weight_histograms(logger, model, epoch):
+    logger.add_histogram('histogram/gru.weight_ih_l0', model.gru_net.gru.weight_ih_l0, epoch)
+    logger.add_histogram('histogram/gru.weight_hh_l0', model.gru_net.gru.weight_hh_l0, epoch)
+    logger.add_histogram('histogram/gru.bias_ih_l0', model.gru_net.gru.bias_ih_l0, epoch)
+    logger.add_histogram('histogram/gru.bias_hh_l0', model.gru_net.gru.bias_hh_l0, epoch)
+    # logger.add_histogram('histogram/gru.weight_ih_l1', model.gru_net.gru.weight_ih_l1, epoch)
+    # logger.add_histogram('histogram/gru.weight_hh_l1', model.gru_net.gru.weight_hh_l1, epoch)
+    # logger.add_histogram('histogram/gru.bias_ih_l1', model.gru_net.gru.bias_ih_l1, epoch)
+    # logger.add_histogram('histogram/gru.bias_hh_l1', model.gru_net.gru.bias_hh_l1, epoch)
+    #fc_layers
+    logger.add_histogram('histogram/gru.dense1.weight', model.gru_net.dense1.weight, epoch)
+    logger.add_histogram('histogram/gru.dense1.bias', model.gru_net.dense1.bias, epoch)
+    logger.add_histogram('histogram/gru.dense2.weight', model.gru_net.dense2.weight, epoch)
+    logger.add_histogram('histogram/gru.dense2.bias', model.gru_net.dense2.bias, epoch)
+
+
 
 
 def test_all(testdata_loader, model):
+    
     all_pred = []
     all_labels = []
     losses_all = []
     with torch.no_grad():
         for i, (batch_xs, batch_det, batch_toas) in enumerate(testdata_loader):
-            losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
+            losses, all_outputs, labels = model(batch_xs, batch_det, batch_toas)
 
             losses_all.append(losses)
+            for t in range(100):
+                frame = all_outputs[t]
+                if len(frame)== 0:
+                    continue
+                else:
+                    for j in range(len(frame)):
+                        score = np.exp(frame[j][:,1])/np.sum(np.exp(frame[j]),axis=1)
+                        all_pred.append(score)
+                        all_labels.append(labels[t][j]+0) #added zero to convert array to scalar
 
-    return losses_all
+    # all_pred = np.array([all_pred[i][0] for i in range(len(all_pred))])
+
+    return losses_all, all_pred, all_labels
 
 
 def average_losses(losses_all):
@@ -67,11 +137,18 @@ def sanity_check():
         optimizer, mode='min', factor=0.5, patience=5)
 
     model = model.to(device=device)
+    # for name, param in model.named_parameters():
+    #     print(name)
 
     for epoch in range(p.epoch):
         print(f"Epoch  [{epoch}/{p.epoch}]")
 
         losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
+        # p,r = evaluation(all_outputs, all_labels)
+        print('outputs',(all_outputs))
+        print('all_labels',(all_labels))
+        np.savez('eval.npz', outputs= all_outputs, labels=all_labels)
+        sys.exit()
         # backward
 
         # clip gradients
@@ -79,9 +156,11 @@ def sanity_check():
         optimizer.zero_grad()
         losses['cross_entropy'].mean().backward()
         optimizer.step()
-        print(losses['cross_entropy'].item())
+        # print(losses['cross_entropy'].item())
         # loop.set_description(f"Epoch  [{k}/{p.epoch}]")
         # loop.set_postfix(loss= losses['cross_entropy'].item() )
+
+
 
 
 def train_eval():
@@ -94,6 +173,11 @@ def train_eval():
     logs_dir = os.path.join(p.output_dir, 'logs')
     if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)
+
+    logs_dir = os.path.join(p.output_dir, 'logs')
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+    logger = SummaryWriter(logs_dir)
 
     # logger = SummaryWriter(logs_dir)
 
@@ -127,6 +211,8 @@ def train_eval():
     # -----------------
     # TO-DO:
     # -----------------
+    # write histograms
+    write_weight_histograms(logger, model, 0)
 
     iter_cur = 0
 
@@ -150,18 +236,30 @@ def train_eval():
             # -----------------
             # write scalars
             # To-DO:
-            ##lr = optimizer.param_groups[0]['lr']
-            ##write_scalars(logger, k, iter_cur, losses, lr)
+            lr = optimizer.param_groups[0]['lr']
+            write_scalars(logger, k, losses, lr)
             # ---------------
-            iter_cur += 1
-            if iter_cur % p.test_iter == 0:
-                model.eval()
-                losses_all = test_all(testdata_loader, model)
-                model.train()
-                loss_val = average_losses(losses_all)
-                print('----------------------------------')
-                print("Starting evaluation...")
-                print('testing loss :', loss_val)
+            iter_cur = 0
+
+
+        if k % p.test_iter == 0 and k!=0:
+
+            model.eval()
+            losses_all,all_pred, all_labels = test_all(testdata_loader, model)
+
+            loss_val = average_losses(losses_all)
+            fpr, tpr, roc_auc= evaluation(all_pred,all_labels,k)
+            plot_curve(fpr,tpr,roc_auc,k)
+            print('----------------------------------')
+            print("Starting evaluation...")
+            print('AUC : ', roc_auc)
+            # print('testing loss :', loss_val)
+            # keep track of validation losses
+            write_test_scalars(logger, k, loss_val, roc_auc)
+            model.train()
+
+            write_pr_curve_tensorboard(logger, all_pred, all_labels)
+
 
             # -----------------
             # test and evaluate the model
@@ -175,7 +273,9 @@ def train_eval():
         #             'optimizer': optimizer.state_dict()}, model_file)
         # print('Model has been saved as: %s' % (model_file))
         scheduler.step(losses['cross_entropy'])
-    # logger.close()
+        # write histograms
+        write_weight_histograms(logger, model, k+1)
+    logger.close()
 
     # print('===Checking the model construction====')
     # for e in range(2):
@@ -185,8 +285,8 @@ def train_eval():
     #             losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
     #
     #             # print('feature dim:', x.size())
-        # print('detection dim:', y.size())
-        # print('toas dim:', toa.size())
+    # print('detection dim:', y.size())
+    # print('toas dim:', toa.size())
 
 
 if __name__ == '__main__':
@@ -197,7 +297,7 @@ if __name__ == '__main__':
                         help='The batch size in training process. Default: 1')
     parser.add_argument('--base_lr', type=float, default=0.001,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=100,
+    parser.add_argument('--epoch', type=int, default=24,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
@@ -208,7 +308,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', type=str, default='./checkpoints',
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=4,
-                        help='The number of iteration to perform a evaluation process. Default: 64')
+                        help='The number of epochs to perform a evaluation process. Default: 64')
     p = parser.parse_args()
     if p.phase == 'test':
         test_eval()

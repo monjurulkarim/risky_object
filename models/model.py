@@ -50,7 +50,7 @@ class RiskyObject(nn.Module):
         self.h_dim = h_dim
         self.fps = fps
         self.n_frames = n_frames
-        self.n_layers = 2
+        self.n_layers = 1
         self.phi_x = nn.Sequential(nn.Linear(x_dim, h_dim), nn.ReLU())
         self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers)
         # self.bce_loss = torch.nn.BCELoss()
@@ -110,8 +110,8 @@ class RiskyObject(nn.Module):
                         losses['cross_entropy'] += loss
                         # frame_loss.append(loss)
                         # print('tracked output: ', output)
-                        frame_outputs.append(output)
-                        frame_labels.append(y[0][t][bbox][5])
+                        frame_outputs.append(output.detach().cpu().numpy())
+                        frame_labels.append(y[0][t][bbox][5].detach().cpu().numpy())
                         h_all_out[track_id] = h_out  # storing in a dictionary
                     else:  # If object was not found in the previous frame
                         h_in = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
@@ -131,10 +131,11 @@ class RiskyObject(nn.Module):
                         loss = self.ce_loss(output, target)
                         losses['cross_entropy'] += loss
                         # frame_loss.append(loss)
-                        frame_outputs.append(output)
-                        frame_labels.append(y[0][t][bbox][5])
+                        frame_outputs.append(output.detach().cpu().numpy())
+                        # print('labels: ', (y[0][t][bbox][5].detach().cpu().numpy()))
+                        frame_labels.append(y[0][t][bbox][5].detach().cpu().numpy())
                         h_all_out[track_id] = h_out  # storing in a dictionary
-            # print('=================')
+            # print('=================')ss
             # print('frame  :', t)
             # # print('all labels: ', frame_labels)
             # # print('--')
