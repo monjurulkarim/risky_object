@@ -42,9 +42,9 @@ def get_args():
     # csv files of each videos, contain tracking, bbox, etc information (generated with det_csv.py)
     parser.add_argument("--csv_dir", default="csv_files")
     # contains the folderwise video frames
-    parser.add_argument("--data_dir", default="data/m_set1_frames/")
+    parser.add_argument("--data_dir", default="data/d3_d4_d1-partial/")
     # extracted resnet50 features will be stored here in *.npz format
-    parser.add_argument("--feature_dir", default="feature/")
+    parser.add_argument("--feature_dir", default="feature/d3_d4_d1-partial/")
     args = parser.parse_args()
     return args
 
