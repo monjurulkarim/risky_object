@@ -5,7 +5,7 @@ from __future__ import print_function
 import torch
 from torch.utils.data import DataLoader
 from models.model import RiskyObject
-from models.evaluation import evaluation, plot_curve
+from models.evaluation import evaluation, plot_auc_curve, plot_pr_curve
 from dataloader import MyDataset
 import argparse
 from tqdm import tqdm
@@ -22,10 +22,11 @@ def write_scalars(logger, epoch, losses, lr):
     logger.add_scalars("train/lr", {'lr': lr}, epoch)
 
 
-def write_test_scalars(logger, epoch, losses, roc_auc):
+def write_test_scalars(logger, epoch, losses, roc_auc, ap):
     cross_entropy = losses.mean()
     logger.add_scalars('test/loss', {'Loss': cross_entropy}, epoch)
     logger.add_scalars('test/roc_auc', {'roc_auc': roc_auc}, epoch)
+    logger.add_scalars('test/ap', {'ap': ap}, epoch)
     # logger.add_scalars('test/fpr', {'fpr': fpr}, epoch)
     # logger.add_scalars('test/fpr', {'tpr': tpr}, epoch)
 
@@ -47,8 +48,7 @@ def write_pr_curve_tensorboard(logger, test_probs, test_label):
     logger.add_pr_curve(classes[1],
                         tensorboard_truth,
                         tensorboard_probs)
-                        # global_step=global_step)
-
+    # global_step=global_step)
 
 
 def write_weight_histograms(logger, model, epoch):
@@ -60,17 +60,15 @@ def write_weight_histograms(logger, model, epoch):
     # logger.add_histogram('histogram/gru.weight_hh_l1', model.gru_net.gru.weight_hh_l1, epoch)
     # logger.add_histogram('histogram/gru.bias_ih_l1', model.gru_net.gru.bias_ih_l1, epoch)
     # logger.add_histogram('histogram/gru.bias_hh_l1', model.gru_net.gru.bias_hh_l1, epoch)
-    #fc_layers
+    # fc_layers
     logger.add_histogram('histogram/gru.dense1.weight', model.gru_net.dense1.weight, epoch)
     logger.add_histogram('histogram/gru.dense1.bias', model.gru_net.dense1.bias, epoch)
     logger.add_histogram('histogram/gru.dense2.weight', model.gru_net.dense2.weight, epoch)
     logger.add_histogram('histogram/gru.dense2.bias', model.gru_net.dense2.bias, epoch)
 
 
-
-
 def test_all(testdata_loader, model):
-    
+
     all_pred = []
     all_labels = []
     losses_all = []
@@ -81,13 +79,13 @@ def test_all(testdata_loader, model):
             losses_all.append(losses)
             for t in range(100):
                 frame = all_outputs[t]
-                if len(frame)== 0:
+                if len(frame) == 0:
                     continue
                 else:
                     for j in range(len(frame)):
-                        score = np.exp(frame[j][:,1])/np.sum(np.exp(frame[j]),axis=1)
+                        score = np.exp(frame[j][:, 1])/np.sum(np.exp(frame[j]), axis=1)
                         all_pred.append(score)
-                        all_labels.append(labels[t][j]+0) #added zero to convert array to scalar
+                        all_labels.append(labels[t][j]+0)  # added zero to convert array to scalar
 
     # all_pred = np.array([all_pred[i][0] for i in range(len(all_pred))])
 
@@ -145,9 +143,9 @@ def sanity_check():
 
         losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
         # p,r = evaluation(all_outputs, all_labels)
-        print('outputs',(all_outputs))
-        print('all_labels',(all_labels))
-        np.savez('eval.npz', outputs= all_outputs, labels=all_labels)
+        print('outputs', (all_outputs))
+        print('all_labels', (all_labels))
+        np.savez('eval.npz', outputs=all_outputs, labels=all_labels)
         sys.exit()
         # backward
 
@@ -159,8 +157,6 @@ def sanity_check():
         # print(losses['cross_entropy'].item())
         # loop.set_description(f"Epoch  [{k}/{p.epoch}]")
         # loop.set_postfix(loss= losses['cross_entropy'].item() )
-
-
 
 
 def train_eval():
@@ -215,6 +211,11 @@ def train_eval():
     write_weight_histograms(logger, model, 0)
 
     iter_cur = 0
+    auc_max = 0
+    ap_max = 0
+    # optional
+    roc_auc = 0
+    ap = 0
 
     for k in range(p.epoch):
         loop = tqdm(enumerate(traindata_loader), total=len(traindata_loader))
@@ -241,52 +242,46 @@ def train_eval():
             # ---------------
             iter_cur = 0
 
-
-        if k % p.test_iter == 0 and k!=0:
+        if k % p.test_iter == 0 and k != 0:
 
             model.eval()
-            losses_all,all_pred, all_labels = test_all(testdata_loader, model)
+            losses_all, all_pred, all_labels = test_all(testdata_loader, model)
 
             loss_val = average_losses(losses_all)
-            fpr, tpr, roc_auc= evaluation(all_pred,all_labels,k)
-            plot_curve(fpr,tpr,roc_auc,k)
+            fpr, tpr, roc_auc = evaluation(all_pred, all_labels, k)
+            plot_auc_curve(fpr, tpr, roc_auc, k)
+            ap = plot_pr_curve(all_labels, all_pred, k)
+
             print('----------------------------------')
             print("Starting evaluation...")
-            print('AUC : ', roc_auc)
+            print(f"AUC : {roc_auc:.2f}")
+            print(f"AP : {ap:.2f}")
             # print('testing loss :', loss_val)
             # keep track of validation losses
-            write_test_scalars(logger, k, loss_val, roc_auc)
+            write_test_scalars(logger, k, loss_val, roc_auc, ap)
             model.train()
 
             write_pr_curve_tensorboard(logger, all_pred, all_labels)
 
-
-            # -----------------
-            # test and evaluate the model
-            # To-DO:
-            # -----------------
-
         # save model
-        # model_file = os.path.join(model_dir, 'risky_%02d.pth' % (k))
-        # torch.save({'epoch': k,
-        #             'model': model.state_dict(),
-        #             'optimizer': optimizer.state_dict()}, model_file)
-        # print('Model has been saved as: %s' % (model_file))
+        if roc_auc > auc_max:
+            auc_max = roc_auc
+            model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AUC Model has been saved as: %s' % (model_file))
+        elif ap > ap_max:
+            ap_max = ap
+            model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AP Model has been saved as: %s' % (model_file))
         scheduler.step(losses['cross_entropy'])
         # write histograms
         write_weight_histograms(logger, model, k+1)
     logger.close()
-
-    # print('===Checking the model construction====')
-    # for e in range(2):
-    #     print('Epoch: %d' % (e))
-    #     for i, (batch_xs, batch_det, batch_toas) in tqdm(enumerate(traindata_loader), total=len(traindata_loader)):
-    #         if i == 0:
-    #             losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
-    #
-    #             # print('feature dim:', x.size())
-    # print('detection dim:', y.size())
-    # print('toas dim:', toa.size())
 
 
 if __name__ == '__main__':
@@ -295,9 +290,9 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 1')
-    parser.add_argument('--base_lr', type=float, default=0.001,
+    parser.add_argument('--base_lr', type=float, default=1e-3,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=24,
+    parser.add_argument('--epoch', type=int, default=60,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
@@ -307,7 +302,7 @@ if __name__ == '__main__':
                         help='dimension of the resnet output. Default: 2048')
     parser.add_argument('--output_dir', type=str, default='./checkpoints',
                         help='The relative path of dataset.')
-    parser.add_argument('--test_iter', type=int, default=4,
+    parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
     p = parser.parse_args()
     if p.phase == 'test':

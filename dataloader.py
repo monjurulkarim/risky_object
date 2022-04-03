@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, default='./feat_extract/feature',
                         help='The relative path of dataset.')
-    parser.add_argument('--batch_size', type=int, default=2,
+    parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 10')
 
     p = parser.parse_args()
