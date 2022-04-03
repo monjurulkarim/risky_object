@@ -17,19 +17,28 @@ class GRUNet(nn.Module):
         super(GRUNet, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
+        self.dropout = [0, 0]
         self.gru = nn.GRU(input_dim, hidden_dim, n_layers, batch_first=True)
         self.dense1 = torch.nn.Linear(hidden_dim, 64)
+        # self.dense2 = torch.nn.Linear(128, 64)
         self.dense2 = torch.nn.Linear(64, output_dim)
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        # self.sigmoid = nn.Sigmoid()
+        # self.softmax = nn.softmax()
 
     def forward(self, x, h):
+
         out, h = self.gru(x, h)
-        # out = F.dropout(out[:, -1], self.dropout[0])
+        # print('output shape', out[:, -1].shape)
+        # print('===========')
+        out = F.dropout(out[:, -1], self.dropout[0])  # optional
         out = self.relu(self.dense1(out))
-        # out = F.dropout(out, self.dropout[1])
+        out = F.dropout(out, self.dropout[1])
         out = self.dense2(out)
-        out = self.sigmoid(out)  # TO-Do: Check without using it
+        # out = F.dropout(out, self.dropout[1])
+        # out = self.dense3(out)
+        # # out = self.relu(out)
+        # out = self.sigmoid(out)  # TO-Do: Check without using it
         return out, h
 
 
@@ -43,8 +52,9 @@ class RiskyObject(nn.Module):
         self.n_frames = n_frames
         self.n_layers = 1
         self.phi_x = nn.Sequential(nn.Linear(x_dim, h_dim), nn.ReLU())
-        self.gru_net = GRUNet(h_dim+h_dim, h_dim, 1, self.n_layers)
-        self.bce_loss = torch.nn.BCELoss()
+        self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers)
+        # self.bce_loss = torch.nn.BCELoss()
+        self.ce_loss = torch.nn.CrossEntropyLoss(reduction='none')
 
     def forward(self, x, y, toa, hidden_in=None, testing=False):
         """
@@ -94,12 +104,14 @@ class RiskyObject(nn.Module):
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 512
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 1 x 512
                         output, h_out = self.gru_net(x_obj, h_in)  # 1x1x256
-                        loss = self.bce_loss(output, y[0][t][bbox][5])
+                        target = y[0][t][bbox][5].to(torch.long)
+                        target = torch.as_tensor([target], device=torch.device('cuda'))
+                        loss = self.ce_loss(output, target)
                         losses['cross_entropy'] += loss
                         # frame_loss.append(loss)
                         # print('tracked output: ', output)
-                        frame_outputs.append(output)
-                        frame_labels.append(y[0][t][bbox][5])
+                        frame_outputs.append(output.detach().cpu().numpy())
+                        frame_labels.append(y[0][t][bbox][5].detach().cpu().numpy())
                         h_all_out[track_id] = h_out  # storing in a dictionary
                     else:  # If object was not found in the previous frame
                         h_in = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
@@ -110,13 +122,20 @@ class RiskyObject(nn.Module):
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 512
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 1 x 512
                         output, h_out = self.gru_net(x_obj, h_in)  # 1x1x256
-                        loss = self.bce_loss(output, y[0][t][bbox][5])
+                        # print('output : ', output)
+
+                        target = y[0][t][bbox][5].to(torch.long)
+                        target = torch.as_tensor([target], device=torch.device('cuda'))
+                        # target = target.squeeze()
+                        # print('target : ', target)
+                        loss = self.ce_loss(output, target)
                         losses['cross_entropy'] += loss
                         # frame_loss.append(loss)
-                        frame_outputs.append(output)
-                        frame_labels.append(y[0][t][bbox][5])
+                        frame_outputs.append(output.detach().cpu().numpy())
+                        # print('labels: ', (y[0][t][bbox][5].detach().cpu().numpy()))
+                        frame_labels.append(y[0][t][bbox][5].detach().cpu().numpy())
                         h_all_out[track_id] = h_out  # storing in a dictionary
-            print('=================')
+            # print('=================')ss
             # print('frame  :', t)
             # # print('all labels: ', frame_labels)
             # # print('--')
