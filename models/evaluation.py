@@ -7,18 +7,8 @@ import os
 
 
 def evaluation(all_pred, all_labels, epoch):
-    # print(all_pred[0][0][0])
-    pred = []
-    for i in range(len(all_pred)):
-        pred.append(all_pred[i][0][0])
-
-    # print(pred)
-    fpr, tpr, thresholds = metrics.roc_curve(np.array(all_labels), np.array(pred), pos_label=1)
-    # fpr, tpr, thresholds = metrics.roc_curve(all_labels, all_pred)
+    fpr, tpr, thresholds = metrics.roc_curve(np.array(all_labels), np.array(all_pred), pos_label=1)
     roc_auc = metrics.auc(fpr, tpr)
-    # cm = confusion_matrix(all_labels, all_pred, labels=['no-risk','risk'])
-    # plot_curve(fpr,tpr,roc_auc,epoch)
-
     return fpr, tpr, roc_auc
 
 
@@ -36,7 +26,7 @@ def plot_auc_curve(fpr, tpr, roc_auc, epoch):
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    # plt.savefig(auc_curve_file)
+    plt.savefig(auc_curve_file)
     plt.close()
 
 
@@ -45,23 +35,18 @@ def plot_pr_curve(all_labels, all_pred, epoch):
     if not os.path.exists(pr_dir):
         os.makedirs(pr_dir)
     pr_curve_file = os.path.join(pr_dir, 'pr_%02d.jpg' % (epoch))
-    pred = []
-    for i in range(len(all_pred)):
-        pred.append(all_pred[i][0][0])
-    precision, recall, thresholds = precision_recall_curve(np.array(all_labels), np.array(pred))
-    ap = average_precision_score(np.array(all_labels), np.array(pred))
+    precision, recall, thresholds = precision_recall_curve(np.array(all_labels), np.array(all_pred))
+    ap = average_precision_score(np.array(all_labels), np.array(all_pred))
 
     plt.title(f'Precision-Recall Curve at epoch: {epoch}')
     plt.plot(recall, precision, 'b', label='AP = %0.2f' % ap)
     plt.legend(loc='lower right')
-    # plt.plot([0, 1], [0, 1],'r--')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
     plt.ylabel('Precision')
     plt.xlabel('Recall')
-    # plt.savefig(pr_curve_file)
+    plt.savefig(pr_curve_file)
     plt.close()
-
     return ap
 
 
