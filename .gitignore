@@ -3,3 +3,13 @@ feat_extract/data/
 feat_extract/track_text/
 feat_extract/csv_files/
 feat_extract/feature/
+charts/
+archive/
+checkpoints/
+models/__pycache__/
+
+*.csv
+*.npy
+*.npz
+*.jpg
+*.log
