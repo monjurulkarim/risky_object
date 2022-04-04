@@ -12,6 +12,10 @@ from tqdm import tqdm
 import os
 from tensorboardX import SummaryWriter
 import numpy as np
+import csv
+
+# optional
+import time
 
 
 def write_scalars(logger, epoch, losses, lr):
@@ -142,19 +146,13 @@ def sanity_check():
         print(f"Epoch  [{epoch}/{p.epoch}]")
 
         losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
-        # p,r = evaluation(all_outputs, all_labels)
-        print('outputs', (all_outputs))
-        print('all_labels', (all_labels))
-        np.savez('eval.npz', outputs=all_outputs, labels=all_labels)
-        sys.exit()
-        # backward
 
         # clip gradients
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
         optimizer.zero_grad()
         losses['cross_entropy'].mean().backward()
         optimizer.step()
-        # print(losses['cross_entropy'].item())
+        print(losses['cross_entropy'].item())
         # loop.set_description(f"Epoch  [{k}/{p.epoch}]")
         # loop.set_postfix(loss= losses['cross_entropy'].item() )
 
@@ -175,7 +173,18 @@ def train_eval():
         os.makedirs(logs_dir)
     logger = SummaryWriter(logs_dir)
 
-    # logger = SummaryWriter(logs_dir)
+    t = time.localtime()
+    current_time = time.strftime("%H-%M-%S", t)
+
+    # optional
+    result_dir = os.path.join(p.output_dir, 'results')
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+
+    result_csv = os.path.join(result_dir, f'result_{current_time}.csv')
+    with open(result_csv, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['epoch', 'loss_val', 'roc_auc', 'ap'])
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -214,8 +223,8 @@ def train_eval():
     auc_max = 0
     ap_max = 0
     # optional
-    roc_auc = 0
-    ap = 0
+    # roc_auc = 0
+    # ap = 0
 
     for k in range(p.epoch):
         loop = tqdm(enumerate(traindata_loader), total=len(traindata_loader))
@@ -229,7 +238,7 @@ def train_eval():
             # backward
             losses['cross_entropy'].mean().backward()
             # clip gradients
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 10)  # not sure
             optimizer.step()
             loop.set_description(f"Epoch  [{k}/{p.epoch}]")
             loop.set_postfix(loss=losses['cross_entropy'].item())
@@ -242,26 +251,30 @@ def train_eval():
             # ---------------
             iter_cur = 0
 
-        if k % p.test_iter == 0 and k != 0:
+        # if k % p.test_iter == 0 and k != 0:
+        print('----------------------------------')
+        print("Starting evaluation...")
+        model.eval()
+        losses_all, all_pred, all_labels = test_all(testdata_loader, model)
 
-            model.eval()
-            losses_all, all_pred, all_labels = test_all(testdata_loader, model)
+        loss_val = average_losses(losses_all)
+        fpr, tpr, roc_auc = evaluation(all_pred, all_labels, k)
+        plot_auc_curve(fpr, tpr, roc_auc, k)
+        ap = plot_pr_curve(all_labels, all_pred, k)
 
-            loss_val = average_losses(losses_all)
-            fpr, tpr, roc_auc = evaluation(all_pred, all_labels, k)
-            plot_auc_curve(fpr, tpr, roc_auc, k)
-            ap = plot_pr_curve(all_labels, all_pred, k)
+        print(f"AUC : {roc_auc:.2f}")
+        print(f"AP : {ap:.2f}")
+        # print('testing loss :', loss_val)
+        # keep track of validation losses
+        write_test_scalars(logger, k, loss_val, roc_auc, ap)
 
-            print('----------------------------------')
-            print("Starting evaluation...")
-            print(f"AUC : {roc_auc:.2f}")
-            print(f"AP : {ap:.2f}")
-            # print('testing loss :', loss_val)
-            # keep track of validation losses
-            write_test_scalars(logger, k, loss_val, roc_auc, ap)
-            model.train()
+        with open(result_csv, 'a+', newline='') as saving_result:
+            writer = csv.writer(saving_result)
+            writer.writerow([k, loss_val, roc_auc, ap])
 
-            write_pr_curve_tensorboard(logger, all_pred, all_labels)
+        model.train()
+
+        # write_pr_curve_tensorboard(logger, all_pred, all_labels)
 
         # save model
         if roc_auc > auc_max:
@@ -292,7 +305,7 @@ if __name__ == '__main__':
                         help='The batch size in training process. Default: 1')
     parser.add_argument('--base_lr', type=float, default=1e-3,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=60,
+    parser.add_argument('--epoch', type=int, default=20,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
@@ -304,6 +317,7 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
+
     p = parser.parse_args()
     if p.phase == 'test':
         test_eval()

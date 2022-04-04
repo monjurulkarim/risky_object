@@ -19,10 +19,19 @@ class GRUNet(nn.Module):
         self.n_layers = n_layers
         self.dropout = [0, 0]
         self.gru = nn.GRU(input_dim, hidden_dim, n_layers, batch_first=True)
+        for name, param in self.gru.named_parameters():
+            if 'bias' in name:
+                nn.init.constant_(param, 0.0)
+            elif 'weight_ih' in name:
+                nn.init.kaiming_normal_(param)
+            elif 'weight_hh' in name:
+                nn.init.orthogonal_(param)
         self.dense1 = torch.nn.Linear(hidden_dim, 64)
         # self.dense2 = torch.nn.Linear(128, 64)
         self.dense2 = torch.nn.Linear(64, output_dim)
         self.relu = nn.ReLU()
+        # self.leaky_relu = nn.LeakyReLU()
+        # self.logsoftmax = nn.LogSoftmax(dim=1)
         # self.sigmoid = nn.Sigmoid()
         # self.softmax = nn.softmax()
 
@@ -32,9 +41,11 @@ class GRUNet(nn.Module):
         # print('output shape', out[:, -1].shape)
         # print('===========')
         out = F.dropout(out[:, -1], self.dropout[0])  # optional
+        # out = self.leaky_relu(self.dense1(out))
         out = self.relu(self.dense1(out))
         out = F.dropout(out, self.dropout[1])
         out = self.dense2(out)
+        # out = self.logsoftmax(out)
         # out = F.dropout(out, self.dropout[1])
         # out = self.dense3(out)
         # # out = self.relu(out)
@@ -50,7 +61,7 @@ class RiskyObject(nn.Module):
         self.h_dim = h_dim
         self.fps = fps
         self.n_frames = n_frames
-        self.n_layers = 1
+        self.n_layers = 2
         self.phi_x = nn.Sequential(nn.Linear(x_dim, h_dim), nn.ReLU())
         self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers)
         # self.bce_loss = torch.nn.BCELoss()
