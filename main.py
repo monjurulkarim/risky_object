@@ -16,6 +16,7 @@ import csv
 
 # optional
 import time
+from datetime import date
 
 
 def write_scalars(logger, epoch, losses, lr):
@@ -60,10 +61,10 @@ def write_weight_histograms(logger, model, epoch):
     logger.add_histogram('histogram/gru.weight_hh_l0', model.gru_net.gru.weight_hh_l0, epoch)
     logger.add_histogram('histogram/gru.bias_ih_l0', model.gru_net.gru.bias_ih_l0, epoch)
     logger.add_histogram('histogram/gru.bias_hh_l0', model.gru_net.gru.bias_hh_l0, epoch)
-    # logger.add_histogram('histogram/gru.weight_ih_l1', model.gru_net.gru.weight_ih_l1, epoch)
-    # logger.add_histogram('histogram/gru.weight_hh_l1', model.gru_net.gru.weight_hh_l1, epoch)
-    # logger.add_histogram('histogram/gru.bias_ih_l1', model.gru_net.gru.bias_ih_l1, epoch)
-    # logger.add_histogram('histogram/gru.bias_hh_l1', model.gru_net.gru.bias_hh_l1, epoch)
+    logger.add_histogram('histogram/gru.weight_ih_l1', model.gru_net.gru.weight_ih_l1, epoch)
+    logger.add_histogram('histogram/gru.weight_hh_l1', model.gru_net.gru.weight_hh_l1, epoch)
+    logger.add_histogram('histogram/gru.bias_ih_l1', model.gru_net.gru.bias_ih_l1, epoch)
+    logger.add_histogram('histogram/gru.bias_hh_l1', model.gru_net.gru.bias_hh_l1, epoch)
     # fc_layers
     logger.add_histogram('histogram/gru.dense1.weight', model.gru_net.dense1.weight, epoch)
     logger.add_histogram('histogram/gru.dense1.bias', model.gru_net.dense1.bias, epoch)
@@ -173,6 +174,9 @@ def train_eval():
         os.makedirs(logs_dir)
     logger = SummaryWriter(logs_dir)
 
+    today = date.today()
+    date_saved = today.strftime("%b-%d-%Y")
+
     t = time.localtime()
     current_time = time.strftime("%H-%M-%S", t)
 
@@ -181,7 +185,7 @@ def train_eval():
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    result_csv = os.path.join(result_dir, f'result_{current_time}.csv')
+    result_csv = os.path.join(result_dir, f'result_{date_saved}_{current_time}.csv')
     with open(result_csv, 'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['epoch', 'loss_val', 'roc_auc', 'ap'])
