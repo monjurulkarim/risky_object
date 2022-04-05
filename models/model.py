@@ -64,8 +64,9 @@ class RiskyObject(nn.Module):
         self.n_layers = 2
         self.phi_x = nn.Sequential(nn.Linear(x_dim, h_dim), nn.ReLU())
         self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers)
+        self.weight = torch.Tensor([0.25, 1]).cuda()
         # self.bce_loss = torch.nn.BCELoss()
-        self.ce_loss = torch.nn.CrossEntropyLoss(reduction='none')
+        self.ce_loss = torch.nn.CrossEntropyLoss(weight = self.weight,reduction='mean')
 
     def forward(self, x, y, toa, hidden_in=None, testing=False):
         """
