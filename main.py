@@ -309,7 +309,7 @@ if __name__ == '__main__':
                         help='The batch size in training process. Default: 1')
     parser.add_argument('--base_lr', type=float, default=1e-3,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=20,
+    parser.add_argument('--epoch', type=int, default=25,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
