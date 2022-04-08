@@ -9,10 +9,11 @@ checkpoints/
 models/__pycache__/
 
 /__pycache__
-feat_extract/src/__pycache__/
+feat_extract/src/__pycache__
 
 *.csv
 *.npy
 *.npz
 *.jpg
 *.log
+*.pyc

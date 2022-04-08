@@ -90,7 +90,7 @@ class RiskyObject(nn.Module):
         self.h_dim_cor = 32
 
         self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers, self.h_dim_cor)
-        self.weight = torch.Tensor([0.25, 1]).cuda()
+        self.weight = torch.Tensor([0.25, 1]).cuda()  # TO-DO: find the correct weight
 
         # input dim 4
         self.gru_net_cor = CorGRU(4, self.h_dim_cor, self.n_layers_cor)
@@ -151,6 +151,8 @@ class RiskyObject(nn.Module):
                         # print(d[1]/1080)
                         norm_cor = torch.Tensor([unnormalized_cor[1]/1080, unnormalized_cor[2]/720, unnormalized_cor[3] /
                                                  1080, unnormalized_cor[4]/720])  # normalized coordinate
+                        # norm_cor = torch.Tensor(
+                        #     [unnormalized_cor[1], unnormalized_cor[2], unnormalized_cor[3], unnormalized_cor[4]])
                         norm_cor = torch.unsqueeze(norm_cor, 0)
                         norm_cor = torch.unsqueeze(norm_cor, 0)
                         norm_cor = norm_cor.to(x.device)
@@ -188,6 +190,7 @@ class RiskyObject(nn.Module):
                         # print(d[1]/1080)
                         norm_cor = torch.Tensor([unnormalized_cor[1]/1080, unnormalized_cor[2]/720, unnormalized_cor[3] /
                                                  1080, unnormalized_cor[4]/720])  # normalized coordinate
+
                         norm_cor = torch.unsqueeze(norm_cor, 0)
                         norm_cor = torch.unsqueeze(norm_cor, 0)
                         norm_cor = norm_cor.to(x.device)

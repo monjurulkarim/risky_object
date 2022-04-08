@@ -18,6 +18,13 @@ import csv
 import time
 from datetime import date
 
+seed = 123
+np.random.seed(seed)
+torch.manual_seed(seed)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 
 def write_scalars(logger, epoch, losses, lr):
     # fetch results
@@ -185,11 +192,6 @@ def train_eval():
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    result_csv = os.path.join(result_dir, f'result_{date_saved}_{current_time}.csv')
-    with open(result_csv, 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['epoch', 'loss_val', 'roc_auc', 'ap'])
-
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     train_data = MyDataset(data_path, 'train', toTensor=True, device=device)
@@ -204,6 +206,13 @@ def train_eval():
     fps = 20
 
     model = RiskyObject(p.x_dim, p.h_dim, n_frames, fps)
+
+    result_csv = os.path.join(result_dir, f'result_{date_saved}_{current_time}.csv')
+    with open(result_csv, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(
+            [f"x_dim: {model.x_dim}, base_h_dim: {model.h_dim}, base_n_layers: {model.n_layers}, cor_n_layers: {model.n_layers_cor}, h_dim_cor:{model.h_dim_cor}, weight: {model.weight}"])
+        writer.writerow(['epoch', 'loss_val', 'roc_auc', 'ap'])
 
     optimizer = torch.optim.Adam(model.parameters(), lr=p.base_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
