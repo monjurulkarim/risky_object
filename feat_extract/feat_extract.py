@@ -40,18 +40,18 @@ def log_information(vid_id, video_frame, track_id, e):
 def get_args():
     parser = argparse.ArgumentParser()
     # csv files of each videos, contain tracking, bbox, etc information (generated with det_csv.py)
-    parser.add_argument("--csv_dir", default="csv_files")
+    parser.add_argument("--csv_dir", default="csv_files_c/")
     # contains the folderwise video frames
-    parser.add_argument("--data_dir", default="data/d3_d4_d1-partial/")
+    parser.add_argument("--data_dir", default="data/c_frames/")
     # extracted resnet50 features will be stored here in *.npz format
-    parser.add_argument("--feature_dir", default="feature/d3_d4_d1-partial/")
+    parser.add_argument("--feature_dir", default="feature/not-combined/c/")
     args = parser.parse_args()
     return args
 
 
 def featureExt(image):
     # image = Image.open(img_path)
-    image = transform(image)  # 3 x 224 x 336 (for the frame, for object it varies)
+    image = transform(image)  # 3 x 224 x 224 (for the frame, for object it varies)
     # print('shape image : ', image.shape)
     image = torch.unsqueeze(image, 0).float().to(device=device)
     # print(image.shape)
@@ -72,11 +72,13 @@ def bbox_to_imroi(video_frame, bbox):
 
 
 def main():
+
     args = get_args()
     csv_dir = args.csv_dir
     data_dir = args.data_dir
     feature_dir = args.feature_dir
     csv_files = natsorted(glob.glob(os.path.join(csv_dir, '*.csv')))
+
     # print(csv_files)
     scaling_w = 4.82  # 1080/224
     scaling_h = 3.21  # 720/224
