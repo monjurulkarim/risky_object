@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 
 # annotation file that contains the video id, toa, and the risky objects traking number
-anno_file = 'c.csv'
+anno_file = 'g.csv'
 # deepsort generated text files directory (video tracking information stored in this text file)
-track_text = 'track_text/c/'
+track_text = 'track_text/g/'
 
 
 vid_ids = []
@@ -48,7 +48,7 @@ with open(anno_file, 'r') as f:
                 # label 1= risky object. Assigning labels corresponding to risk object.
                 df.loc[df['track_id'] == risk_objects[i], 'label'] = int(1)
             # a csv file will be stored corresponding to each video_id
-            df.to_csv('csv_files_c/'+vid_id+'-'+toa + '.csv', index=False)
+            df.to_csv('csv_files_g/'+vid_id+'-'+toa + '.csv', index=False)
         except Exception as e:
             print(e)
             continue

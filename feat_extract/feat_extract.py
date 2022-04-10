@@ -40,11 +40,11 @@ def log_information(vid_id, video_frame, track_id, e):
 def get_args():
     parser = argparse.ArgumentParser()
     # csv files of each videos, contain tracking, bbox, etc information (generated with det_csv.py)
-    parser.add_argument("--csv_dir", default="csv_files_c/")
+    parser.add_argument("--csv_dir", default="csv_files_g/")
     # contains the folderwise video frames
-    parser.add_argument("--data_dir", default="data/c_frames/")
+    parser.add_argument("--data_dir", default="data/g_frames/")
     # extracted resnet50 features will be stored here in *.npz format
-    parser.add_argument("--feature_dir", default="feature/not-combined/c/")
+    parser.add_argument("--feature_dir", default="feature/not-combined/g/")
     args = parser.parse_args()
     return args
 
@@ -94,6 +94,9 @@ def main():
         toa = int(vid_id_toa.split('-')[-1])  # time of accident
         video = data_dir+vid_id+'/'
         video_frames = natsorted(glob.glob(os.path.join(video, '*.jpg')))
+        if len(video_frames) == 0:
+            print('Frames not found in ', vid_id)
+            continue
         print('========', vid_id, '===================')
         for j in range(len(video_frames)):
             img_path = video_frames[j]
@@ -103,7 +106,7 @@ def main():
             # feat = feat.detach().numpy()
             feat = feat.cpu().numpy() if feat.is_cuda else feat.detach().numpy()
             feature[j, 0, :] = feat
-        print('frame_level feature extraction finished.')
+        # print('frame_level feature extraction finished.')
 
         df = pd.read_csv(i)
         df = df.reset_index()
