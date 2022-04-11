@@ -41,6 +41,7 @@ class MyDataset(Dataset):
             features = data['feature']  # 100 x 31 x 2048
             toa = [data['toa']+0]  # 1
             detection = data['detection']  # labels : data['detection'][:,:,5] --> 100 x 30
+            depth = data['depth_feat']  # 100 x 31 x 2048
             # track_id : data['detection'][:,:,0] --> 100 x 30
 
         except:
@@ -50,8 +51,9 @@ class MyDataset(Dataset):
             features = torch.Tensor(features).to(self.device)  # 50 x 20 x 4096
             detection = torch.Tensor(detection).to(self.device)
             toa = torch.Tensor(toa).to(self.device)
+            depth = torch.Tensor(depth).to(self.device)
 
-        return features, detection, toa
+        return features, detection, toa, depth
 
 
 if __name__ == '__main__':
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     from tqdm import tqdm
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='./feat_extract/feature',
+    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_d',
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 10')
@@ -79,19 +81,20 @@ if __name__ == '__main__':
         dataset=test_data, batch_size=p.batch_size, shuffle=False, drop_last=True)
 
     print('===Checking the dataloader====')
-    for e in range(2):
+    for e in range(1):
         print('Epoch: %d' % (e))
-        for i, (batch_xs, batch_det, batch_toas) in tqdm(enumerate(traindata_loader), total=len(traindata_loader)):
+        for i, (batch_xs, batch_det, batch_toas, batch_depth) in tqdm(enumerate(traindata_loader), total=len(traindata_loader)):
             if i == 0:
                 print('feature dim:', batch_xs.size())
                 print('detection dim:', batch_det.size())
                 print('toas dim:', batch_toas.size())
-                print('toas batch : ', batch_toas)
+                print('depth dim : ', batch_depth.size())
 
-    for e in range(2):
+    for e in range(1):
         print('Epoch: %d' % (e))
-        for i, (batch_xs, batch_det, batch_toas) in tqdm(enumerate(testdata_loader), total=len(testdata_loader)):
+        for i, (batch_xs, batch_det, batch_toas, batch_depth) in tqdm(enumerate(testdata_loader), total=len(testdata_loader)):
             if i == 0:
                 print('feature dim:', batch_xs.size())
                 print('detection dim:', batch_det.size())
                 print('toas dim:', batch_toas.size())
+                print('depth dim : ', batch_depth.size())

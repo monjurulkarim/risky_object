@@ -85,8 +85,8 @@ def test_all(testdata_loader, model):
     all_labels = []
     losses_all = []
     with torch.no_grad():
-        for i, (batch_xs, batch_det, batch_toas) in enumerate(testdata_loader):
-            losses, all_outputs, labels = model(batch_xs, batch_det, batch_toas)
+        for i, (batch_xs, batch_det, batch_toas, batch_depth) in enumerate(testdata_loader):
+            losses, all_outputs, labels = model(batch_xs, batch_det, batch_toas, batch_depth)
 
             losses_all.append(losses)
             for t in range(100):
@@ -133,7 +133,7 @@ def sanity_check():
         dataset=train_data, batch_size=p.batch_size, shuffle=True, drop_last=True)
     testdata_loader = DataLoader(dataset=test_data, batch_size=p.batch_size,
                                  shuffle=False, drop_last=True)
-    batch_xs, batch_det, batch_toas = next(iter(traindata_loader))
+    batch_xs, batch_det, batch_toas, batch_depth = next(iter(traindata_loader))
     n_frames = 100
     fps = 20
 
@@ -153,7 +153,7 @@ def sanity_check():
     for epoch in range(p.epoch):
         print(f"Epoch  [{epoch}/{p.epoch}]")
 
-        losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
+        losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas, batch_depth)
 
         # clip gradients
         torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
@@ -176,9 +176,6 @@ def train_eval():
     if not os.path.exists(logs_dir):
         os.makedirs(logs_dir)
 
-    logs_dir = os.path.join(p.output_dir, 'logs')
-    if not os.path.exists(logs_dir):
-        os.makedirs(logs_dir)
     logger = SummaryWriter(logs_dir)
 
     today = date.today()
@@ -210,6 +207,7 @@ def train_eval():
     result_csv = os.path.join(result_dir, f'result_{date_saved}_{current_time}.csv')
     with open(result_csv, 'a', newline='') as f:
         writer = csv.writer(f)
+        writer.writerow([f"data_path: {data_path} "])
         writer.writerow(
             [f"x_dim: {model.x_dim}, base_h_dim: {model.h_dim}, base_n_layers: {model.n_layers}, cor_n_layers: {model.n_layers_cor}, h_dim_cor:{model.h_dim_cor}, weight: {model.weight}"])
         writer.writerow(['epoch', 'loss_val', 'roc_auc', 'ap'])
@@ -244,9 +242,9 @@ def train_eval():
         if k <= start_epoch:
             iter_cur += len(traindata_loader)
             continue
-        for i, (batch_xs, batch_det, batch_toas) in loop:
+        for i, (batch_xs, batch_det, batch_toas, batch_depth) in loop:
             optimizer.zero_grad()
-            losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas)
+            losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas, batch_depth)
 
             # backward
             losses['cross_entropy'].mean().backward()
@@ -312,7 +310,7 @@ def train_eval():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='./feat_extract/feature',
+    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_d',
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 1')
