@@ -31,21 +31,25 @@ class GRUNet(nn.Module):
         # self.dense2 = torch.nn.Linear(128, 64)
         self.dense2 = torch.nn.Linear(128, output_dim)
         self.relu = nn.ReLU()
+        # self.drop_layer = nn.Dropout(p=0.2)
+        # self.drop_layer2 = nn.Dropout(p=0.1)
         # self.leaky_relu = nn.LeakyReLU()
         # self.logsoftmax = nn.LogSoftmax(dim=1)
         # self.sigmoid = nn.Sigmoid()
         # self.softmax = nn.softmax()
 
-    def forward(self, x, h, output_cor, output_depth):
+    def forward(self, x, h, output_cor, output_flow):
 
         out, h = self.gru(x, h)
-        out = torch.cat([out, output_cor, output_depth], dim=-1)
+        out = torch.cat([out, output_cor, output_flow], dim=-1)
 
         # print('output shape', out.shape)
         # print('===========')
+        # out = self.drop_layer(out[:, -1])
         out = F.dropout(out[:, -1], self.dropout[0])  # optional
         # out = self.leaky_relu(self.dense1(out))
         out = self.relu(self.dense1(out))
+        # out = self.drop_layer2(out)
         out = F.dropout(out, self.dropout[1])
         out = self.dense2(out)
         # out = self.logsoftmax(out)
@@ -75,9 +79,9 @@ class CorGRU(nn.Module):
         return out, h
 
 
-class Depth_GRUNet(nn.Module):
+class flow_GRUNet(nn.Module):
     def __init__(self, input_dim, hidden_dim, n_layers):
-        super(Depth_GRUNet, self).__init__()
+        super(flow_GRUNet, self).__init__()
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
         self.gru = nn.GRU(input_dim, hidden_dim, n_layers, batch_first=True)
@@ -112,7 +116,7 @@ class RiskyObject(nn.Module):
         self.h_dim_cor = 32
 
         self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers, self.h_dim_cor)
-        self.gru_net_depth = Depth_GRUNet(h_dim+h_dim, h_dim, self.n_layers)
+        self.gru_net_flow = flow_GRUNet(h_dim+h_dim, h_dim, self.n_layers)
         self.weight = torch.Tensor([0.25, 1]).cuda()  # TO-DO: find the correct weight
 
         # input dim 4
@@ -120,7 +124,7 @@ class RiskyObject(nn.Module):
         # self.bce_loss = torch.nn.BCELoss()
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=self.weight, reduction='mean')
 
-    def forward(self, x, y, toa, depth, hidden_in=None, testing=False):
+    def forward(self, x, y, toa, flow, hidden_in=None, testing=False):
         """
         :param x (batchsize, nFrames, 1+maxBox, Xdim)
         :param y (batchsize, nFrames, maxBox, 6)
@@ -137,8 +141,8 @@ class RiskyObject(nn.Module):
         # hidden representation for secondary gru
         h_all_in_cor = {}
         h_all_out_cor = {}
-        h_all_in_depth = {}
-        h_all_out_depth = {}
+        h_all_in_flow = {}
+        h_all_out_flow = {}
 
         all_outputs = []
         all_labels = []
@@ -146,7 +150,7 @@ class RiskyObject(nn.Module):
             # projecting to a lower dimensional space
             # 2048 --> 256
             rgb = x[:, t]  # 1 x31 x2048
-            d = depth[:, t]  # 1 x31 x2048
+            d = flow[:, t]  # 1 x31 x2048
             # rgb_d = torch.cat([rgb, d], dim=-1)  # 1 x31 x 4096
 
             # x_val = self.phi_x(x[:, t])  # 1 x 31 x 256 #rgb
@@ -163,7 +167,7 @@ class RiskyObject(nn.Module):
             obj_embed = x_val[:, 1:, :]   # 1 x 30 x 128 # TO-DO: DSA --> try spatial attention
             x_t = torch.cat([obj_embed, img_embed], dim=-1)  # 1 x 30 x 512
 
-            # Depth---------------
+            # flow---------------
             d_val = self.phi_x(d)  # 1 x 31 x 256  #rgb_d
             d_img_embed = d_val[:, 0, :].unsqueeze(1)  # 1 x 1 x 256
             d_img_embed = d_img_embed.repeat(1, 30, 1)  # 1 x 30 x 256
@@ -183,7 +187,7 @@ class RiskyObject(nn.Module):
             # x_t = torch.cat([rgb_t, d_t], dim=-1)  # 1 x 30 x 512
             h_all_out = {}
             h_all_out_cor = {}
-            h_all_out_depth = {}
+            h_all_out_flow = {}
             frame_outputs = []
             frame_labels = []
             # frame_loss = []
@@ -194,17 +198,17 @@ class RiskyObject(nn.Module):
                     track_id = str(y[0][t][bbox][0].cpu().detach().numpy())
                     if track_id in h_all_in:
 
-                        # Depth GRU
-                        h_in_depth = h_all_in_depth[track_id]  # 1x1x256
+                        # flow GRU
+                        h_in_flow = h_all_in_flow[track_id]  # 1x1x256
                         # x_obj = x_t[0][t][bbox]  # 4096 # x_t[batch][frame][bbox]
-                        x_obj_depth = d_t[0][bbox]  # 4096 # x_t[batch][frame][bbox]
-                        x_obj_depth = torch.unsqueeze(x_obj_depth, 0)  # 1 x 512
-                        x_obj_depth = torch.unsqueeze(x_obj_depth, 0)  # 1 x 1 x 512
+                        x_obj_flow = d_t[0][bbox]  # 4096 # x_t[batch][frame][bbox]
+                        x_obj_flow = torch.unsqueeze(x_obj_flow, 0)  # 1 x 512
+                        x_obj_flow = torch.unsqueeze(x_obj_flow, 0)  # 1 x 1 x 512
 
-                        output_depth, h_out_depth = self.gru_net_depth(
-                            x_obj_depth, h_in_depth)  # 1x1x256
+                        output_flow, h_out_flow = self.gru_net_flow(
+                            x_obj_flow, h_in_flow)  # 1x1x256
 
-                        h_all_out_depth[track_id] = h_out_depth
+                        h_all_out_flow[track_id] = h_out_flow
 
                         # secondary GRU-----------------------------------
                         # decoding the coordinate with a secondary GRU model
@@ -232,7 +236,7 @@ class RiskyObject(nn.Module):
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 1 x 512
 
                         output, h_out = self.gru_net(
-                            x_obj, h_in, output_cor, output_depth)  # 1x1x256
+                            x_obj, h_in, output_cor, output_flow)  # 1x1x256
                         target = y[0][t][bbox][5].to(torch.long)
                         target = torch.as_tensor([target], device=torch.device('cuda'))
 
@@ -247,19 +251,19 @@ class RiskyObject(nn.Module):
 
                     else:  # If object was not found in the previous frame
 
-                        # Depth GRU
-                        h_in_depth = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
-                                              )  # TO-DO: hidden_in like dsta
-                        h_in_depth = h_in_depth.to(x.device)
+                        # flow GRU
+                        h_in_flow = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
+                                             )  # TO-DO: hidden_in like dsta
+                        h_in_flow = h_in_flow.to(x.device)
                         # x_obj = x_t[0][t][bbox]  # 4096 # x_t[batch][frame][bbox]
-                        x_obj_depth = d_t[0][bbox]  # 4096 # x_t[batch][frame][bbox]
-                        x_obj_depth = torch.unsqueeze(x_obj_depth, 0)  # 1 x 512
-                        x_obj_depth = torch.unsqueeze(x_obj_depth, 0)  # 1 x 1 x 512
+                        x_obj_flow = d_t[0][bbox]  # 4096 # x_t[batch][frame][bbox]
+                        x_obj_flow = torch.unsqueeze(x_obj_flow, 0)  # 1 x 512
+                        x_obj_flow = torch.unsqueeze(x_obj_flow, 0)  # 1 x 1 x 512
 
-                        output_depth, h_out_depth = self.gru_net_depth(
-                            x_obj_depth, h_in_depth)  # 1x1x256
+                        output_flow, h_out_flow = self.gru_net_flow(
+                            x_obj_flow, h_in_flow)  # 1x1x256
 
-                        h_all_out_depth[track_id] = h_out_depth
+                        h_all_out_flow[track_id] = h_out_flow
                         # secondary GRU --------------------------------------
                         # decoding the coordinate with a secondary GRU model
                         unnormalized_cor = y[0][t][bbox]  # unnormalized coordinate (1080,720)scale
@@ -294,7 +298,7 @@ class RiskyObject(nn.Module):
                         x_obj = torch.unsqueeze(x_obj, 0)  # 1 x 1 x 512
 
                         output, h_out = self.gru_net(
-                            x_obj, h_in, output_cor, output_depth)  # 1x1x256
+                            x_obj, h_in, output_cor, output_flow)  # 1x1x256
                         target = y[0][t][bbox][5].to(torch.long)
                         target = torch.as_tensor([target], device=torch.device('cuda'))
                         # target = target.squeeze()
@@ -308,7 +312,7 @@ class RiskyObject(nn.Module):
                         frame_labels.append(y[0][t][bbox][5].detach().cpu().numpy())
                         h_all_out[track_id] = h_out  # storing in a dictionary
                         h_all_out_cor[track_id] = h_out_cor
-                        h_all_out_depth[track_id] = h_out_depth
+                        h_all_out_flow[track_id] = h_out_flow
             # print('=================')ss
             # print('frame  :', t)
             # # print('all labels: ', frame_labels)
@@ -333,8 +337,8 @@ class RiskyObject(nn.Module):
             h_all_in_cor = {}
             h_all_in_cor = h_all_out_cor.copy()
 
-            h_all_in_depth = {}
-            h_all_in_depth = h_all_out_depth.copy()
+            h_all_in_flow = {}
+            h_all_in_flow = h_all_out_flow.copy()
             # if t == 99:
             #     print('break')
             #     sys.exit(0)

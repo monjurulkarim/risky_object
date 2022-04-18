@@ -85,8 +85,8 @@ def test_all(testdata_loader, model):
     all_labels = []
     losses_all = []
     with torch.no_grad():
-        for i, (batch_xs, batch_det, batch_toas, batch_depth) in enumerate(testdata_loader):
-            losses, all_outputs, labels = model(batch_xs, batch_det, batch_toas, batch_depth)
+        for i, (batch_xs, batch_det, batch_toas, batch_flow) in enumerate(testdata_loader):
+            losses, all_outputs, labels = model(batch_xs, batch_det, batch_toas, batch_flow)
 
             losses_all.append(losses)
             for t in range(100):
@@ -133,7 +133,7 @@ def sanity_check():
         dataset=train_data, batch_size=p.batch_size, shuffle=True, drop_last=True)
     testdata_loader = DataLoader(dataset=test_data, batch_size=p.batch_size,
                                  shuffle=False, drop_last=True)
-    batch_xs, batch_det, batch_toas, batch_depth = next(iter(traindata_loader))
+    batch_xs, batch_det, batch_toas, batch_flow = next(iter(traindata_loader))
     n_frames = 100
     fps = 20
 
@@ -153,7 +153,7 @@ def sanity_check():
     for epoch in range(p.epoch):
         print(f"Epoch  [{epoch}/{p.epoch}]")
 
-        losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas, batch_depth)
+        losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas, batch_flow)
 
         # clip gradients
         torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
@@ -242,9 +242,9 @@ def train_eval():
         if k <= start_epoch:
             iter_cur += len(traindata_loader)
             continue
-        for i, (batch_xs, batch_det, batch_toas, batch_depth) in loop:
+        for i, (batch_xs, batch_det, batch_toas, batch_flow) in loop:
             optimizer.zero_grad()
-            losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas, batch_depth)
+            losses, all_outputs, all_labels = model(batch_xs, batch_det, batch_toas, batch_flow)
 
             # backward
             losses['cross_entropy'].mean().backward()
@@ -288,20 +288,20 @@ def train_eval():
         # write_pr_curve_tensorboard(logger, all_pred, all_labels)
 
         # save model
-        if roc_auc > auc_max:
-            auc_max = roc_auc
-            model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-            torch.save({'epoch': k,
-                        'model': model.state_dict(),
-                        'optimizer': optimizer.state_dict()}, model_file)
-            print('Best AUC Model has been saved as: %s' % (model_file))
-        elif ap > ap_max:
-            ap_max = ap
-            model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
-            torch.save({'epoch': k,
-                        'model': model.state_dict(),
-                        'optimizer': optimizer.state_dict()}, model_file)
-            print('Best AP Model has been saved as: %s' % (model_file))
+        # if roc_auc > auc_max:
+        #     auc_max = roc_auc
+        #     model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+        #     torch.save({'epoch': k,
+        #                 'model': model.state_dict(),
+        #                 'optimizer': optimizer.state_dict()}, model_file)
+        #     print('Best AUC Model has been saved as: %s' % (model_file))
+        # elif ap > ap_max:
+        #     ap_max = ap
+        #     model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
+        #     torch.save({'epoch': k,
+        #                 'model': model.state_dict(),
+        #                 'optimizer': optimizer.state_dict()}, model_file)
+        #     print('Best AP Model has been saved as: %s' % (model_file))
         scheduler.step(losses['cross_entropy'])
         # write histograms
         write_weight_histograms(logger, model, k+1)
@@ -310,7 +310,7 @@ def train_eval():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_d',
+    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_flow_full',
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 1')
