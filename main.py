@@ -288,20 +288,20 @@ def train_eval():
         # write_pr_curve_tensorboard(logger, all_pred, all_labels)
 
         # save model
-        # if roc_auc > auc_max:
-        #     auc_max = roc_auc
-        #     model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-        #     torch.save({'epoch': k,
-        #                 'model': model.state_dict(),
-        #                 'optimizer': optimizer.state_dict()}, model_file)
-        #     print('Best AUC Model has been saved as: %s' % (model_file))
-        # elif ap > ap_max:
-        #     ap_max = ap
-        #     model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
-        #     torch.save({'epoch': k,
-        #                 'model': model.state_dict(),
-        #                 'optimizer': optimizer.state_dict()}, model_file)
-        #     print('Best AP Model has been saved as: %s' % (model_file))
+        if roc_auc > auc_max:
+            auc_max = roc_auc
+            model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AUC Model has been saved as: %s' % (model_file))
+        elif ap > ap_max:
+            ap_max = ap
+            model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AP Model has been saved as: %s' % (model_file))
         scheduler.step(losses['cross_entropy'])
         # write histograms
         write_weight_histograms(logger, model, k+1)
@@ -316,7 +316,7 @@ if __name__ == '__main__':
                         help='The batch size in training process. Default: 1')
     parser.add_argument('--base_lr', type=float, default=1e-3,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=25,
+    parser.add_argument('--epoch', type=int, default=20,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
