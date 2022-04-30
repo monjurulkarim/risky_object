@@ -146,6 +146,7 @@ class RiskyObject(nn.Module):
 
         all_outputs = []
         all_labels = []
+
         for t in range(x.size(1)):
             # projecting to a lower dimensional space
             # 2048 --> 256
