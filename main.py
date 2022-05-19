@@ -288,20 +288,20 @@ def train_eval():
         # write_pr_curve_tensorboard(logger, all_pred, all_labels)
 
         # save model
-        if roc_auc > auc_max:
-            auc_max = roc_auc
-            model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-            torch.save({'epoch': k,
-                        'model': model.state_dict(),
-                        'optimizer': optimizer.state_dict()}, model_file)
-            print('Best AUC Model has been saved as: %s' % (model_file))
-        elif ap > ap_max:
-            ap_max = ap
-            model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
-            torch.save({'epoch': k,
-                        'model': model.state_dict(),
-                        'optimizer': optimizer.state_dict()}, model_file)
-            print('Best AP Model has been saved as: %s' % (model_file))
+        # if roc_auc > auc_max:
+        #     auc_max = roc_auc
+        #     model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+        #     torch.save({'epoch': k,
+        #                 'model': model.state_dict(),
+        #                 'optimizer': optimizer.state_dict()}, model_file)
+        #     print('Best AUC Model has been saved as: %s' % (model_file))
+        # elif ap > ap_max:
+        #     ap_max = ap
+        #     model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
+        #     torch.save({'epoch': k,
+        #                 'model': model.state_dict(),
+        #                 'optimizer': optimizer.state_dict()}, model_file)
+        #     print('Best AP Model has been saved as: %s' % (model_file))
         scheduler.step(losses['cross_entropy'])
         # write histograms
         write_weight_histograms(logger, model, k+1)

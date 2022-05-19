@@ -59,19 +59,26 @@ if __name__ == '__main__':
                         help='hidden dimension of the gru. Default: 256')
     parser.add_argument('--x_dim', type=int, default=2048,
                         help='dimension of the resnet output. Default: 2048')
-    parser.add_argument('--feature_file', type=str,
-                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_full/val/109_M.npz")
+    parser.add_argument('--feature_dir', type=str,
+                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_full/val")
+    parser.add_argument('--output_dir', type=str,
+                        help="the path to the feature file.", default="checkpoints/output/")
     p = parser.parse_args()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    features, detection, toa, flow = load_input_data(p.feature_file, device=device)
-    features = features.unsqueeze(0)
-    detection = detection.unsqueeze(0)
-    flow = flow.unsqueeze(0)
+    # feature_files = glob.glob(os.path.join(p.feature_dir, '*.npz'))
+    feature_files = os.listdir(p.feature_dir)
 
-    model = init_risky_object_model(p.ckpt_file, p.x_dim, p.h_dim, 100, 20)
-    with torch.no_grad():
-        losses, all_outputs, all_labels = model(features, detection, toa, flow)
-        file_name = 'output.npz'
-        np.savez_compressed(file_name, output=all_outputs, label=all_labels)
-        print('----Done----')
+    for file in feature_files:
+        feature_file = os.path.join(p.feature_dir, file)
+        features, detection, toa, flow = load_input_data(feature_file, device=device)
+        features = features.unsqueeze(0)
+        detection = detection.unsqueeze(0)
+        flow = flow.unsqueeze(0)
+
+        model = init_risky_object_model(p.ckpt_file, p.x_dim, p.h_dim, 100, 20)
+        with torch.no_grad():
+            losses, all_outputs, all_labels = model(features, detection, toa, flow)
+            file_name = os.path.join(p.output_dir, file)
+            np.savez_compressed(file_name, output=all_outputs, label=all_labels)
+            print(f'----Completed----{file}')
