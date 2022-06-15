@@ -5,7 +5,7 @@ from __future__ import print_function
 import torch
 from torch.utils.data import DataLoader
 from models.model import RiskyObject
-from models.evaluation import evaluation, plot_auc_curve, plot_pr_curve
+from models.evaluation import evaluation, plot_auc_curve, plot_pr_curve, frame_auc
 from dataloader import MyDataset
 import argparse
 from tqdm import tqdm
@@ -84,6 +84,7 @@ def test_all(testdata_loader, model):
     all_pred = []
     all_labels = []
     losses_all = []
+
     with torch.no_grad():
         for i, (batch_xs, batch_det, batch_toas, batch_flow) in enumerate(testdata_loader):
             losses, all_outputs, labels = model(batch_xs, batch_det, batch_toas, batch_flow)
@@ -98,6 +99,7 @@ def test_all(testdata_loader, model):
                         score = np.exp(frame[j][:, 1])/np.sum(np.exp(frame[j]), axis=1)
                         all_pred.append(score)
                         all_labels.append(labels[t][j]+0)  # added zero to convert array to scalar
+
 
     # all_pred = np.array([all_pred[i][0] for i in range(len(all_pred))])
 
@@ -288,13 +290,13 @@ def train_eval():
         # write_pr_curve_tensorboard(logger, all_pred, all_labels)
 
         # save model
-        # if roc_auc > auc_max:
-        #     auc_max = roc_auc
-        #     model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-        #     torch.save({'epoch': k,
-        #                 'model': model.state_dict(),
-        #                 'optimizer': optimizer.state_dict()}, model_file)
-        #     print('Best AUC Model has been saved as: %s' % (model_file))
+        if roc_auc > auc_max:
+            auc_max = roc_auc
+            model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AUC Model has been saved as: %s' % (model_file))
         # elif ap > ap_max:
         #     ap_max = ap
         #     model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
@@ -308,9 +310,65 @@ def train_eval():
     logger.close()
 
 
+def _load_checkpoint(model, optimizer=None, filename='checkpoint.pth.tar'):
+    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
+    start_epoch = 0
+    if os.path.isfile(filename):
+        checkpoint = torch.load(filename)
+        start_epoch = checkpoint['epoch']
+        model.load_state_dict(checkpoint['model'])
+        # print('Checkpoint loaded')
+    else:
+        print("=> no checkpoint found at '{}'".format(filename))
+
+    return model, optimizer, start_epoch
+
+
+def test_eval():
+    # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
+    data_path = p.data_path
+
+    result_dir = os.path.join(p.output_dir, 'test_results')
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+    test_data = MyDataset(data_path, 'val', toTensor=True, device=device)
+
+    testdata_loader = DataLoader(dataset=test_data, batch_size=p.batch_size,
+                                 shuffle=False, drop_last=True)
+
+    n_frames = 100  # unnecessary
+    fps = 20  # unnecessary
+
+    # model_dir = os.path.join(p.output_dir, 'snapshot')
+    # model_file = os.path.join(model_dir, 'checkpoints/58_75/snapshot/best_ap_08.pth')
+    model_file = p.ckpt_file  # directory of the model file
+    model = RiskyObject(p.x_dim, p.h_dim, n_frames, fps)
+    model = model.to(device=device)
+    model.eval()
+    model, _, _ = _load_checkpoint(model, filename=model_file)
+    losses_all, all_pred, all_labels  = test_all(testdata_loader, model)
+    k = 8
+    loss_val = average_losses(losses_all)
+    fpr, tpr, roc_auc = evaluation(all_pred, all_labels, k)
+    plot_auc_curve(fpr, tpr, roc_auc, k)
+    ap = plot_pr_curve(all_labels, all_pred, k)
+
+    print(f"AUC : {roc_auc:.2f}")
+    print(f"AP : {ap:.2f}")
+    print('=====================')
+
+
+    return
+
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_flow_full',
+    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/dota',
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 1')
@@ -328,6 +386,8 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
+    parser.add_argument('--ckpt_file', type=str, default='checkpoints/58_75/snapshot/best_ap_08.pth',
+                        help='model file')
 
     p = parser.parse_args()
     if p.phase == 'test':

@@ -1,9 +1,10 @@
-import numpy as np
+# import numpy as np
 from sklearn import metrics
 from sklearn.metrics import precision_recall_curve, average_precision_score
 
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 
 
 def evaluation(all_pred, all_labels, epoch):
@@ -48,6 +49,43 @@ def plot_pr_curve(all_labels, all_pred, epoch):
     plt.savefig(pr_curve_file)
     plt.close()
     return ap
+
+
+def frame_auc(output, labels):
+    # print(output)
+    output = np.array(output)
+    labels = np.array(labels)
+    # print(output)
+    all_pred = []
+    all_labels = []
+
+    for t in range(len(output)):
+        frame = output[t]
+        frame_score = []
+        frame_label = []
+        print(frame)
+
+        if len(frame) == 0:
+            continue
+        else:
+            for j in range(len(frame)):
+                score = np.exp(frame[j][:, 1])/np.sum(np.exp(frame[j]), axis=1)
+                frame_score.append(score)
+                frame_label.append(labels[t][j]+0)
+            all_pred.append(max(frame_score))
+            all_labels.append(sum(frame_label))
+
+    new_labels = []
+    for i in all_labels:
+        if i > 0.0:
+            new_labels.append(1.0)
+        else:
+            new_labels.append(0.0)
+
+    fpr, tpr, thresholds = metrics.roc_curve(np.array(new_labels), np.array(all_pred), pos_label=1)
+    roc_auc = metrics.auc(fpr, tpr)
+
+    return roc_auc
 
 
 # def evaluation(all_pred,all_labels):
