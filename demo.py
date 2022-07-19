@@ -54,13 +54,13 @@ def _load_checkpoint(model, optimizer=None, filename='checkpoint.pth.tar'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt_file', type=str, help="the path to the model file.",
-                        default="checkpoints/58_75/snapshot/best_ap_08.pth")
+                        default="checkpoints/snapshot/best_auc_11.pth")
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
     parser.add_argument('--x_dim', type=int, default=2048,
                         help='dimension of the resnet output. Default: 2048')
     parser.add_argument('--feature_dir', type=str,
-                        help="the path to the feature file.", default="feat_extract/feature/dota/train")
+                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_1000/val")
     parser.add_argument('--output_dir', type=str,
                         help="the path to the feature file.", default="checkpoints/output/")
     p = parser.parse_args()
