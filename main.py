@@ -100,7 +100,6 @@ def test_all(testdata_loader, model):
                         all_pred.append(score)
                         all_labels.append(labels[t][j]+0)  # added zero to convert array to scalar
 
-
     # all_pred = np.array([all_pred[i][0] for i in range(len(all_pred))])
 
     return losses_all, all_pred, all_labels
@@ -349,21 +348,18 @@ def test_eval():
     model = model.to(device=device)
     model.eval()
     model, _, _ = _load_checkpoint(model, filename=model_file)
-    losses_all, all_pred, all_labels  = test_all(testdata_loader, model)
+    losses_all, all_pred, all_labels = test_all(testdata_loader, model)
     k = 8
     loss_val = average_losses(losses_all)
     fpr, tpr, roc_auc = evaluation(all_pred, all_labels, k)
     plot_auc_curve(fpr, tpr, roc_auc, k)
     ap = plot_pr_curve(all_labels, all_pred, k)
 
-    print(f"AUC : {roc_auc:.2f}")
-    print(f"AP : {ap:.2f}")
+    print(f"AUC : {roc_auc:.4f}")
+    print(f"AP : {ap:.4f}")
     print('=====================')
 
-
     return
-
-
 
 
 if __name__ == '__main__':
@@ -386,7 +382,7 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
-    parser.add_argument('--ckpt_file', type=str, default='checkpoints/58_75/snapshot/best_ap_08.pth',
+    parser.add_argument('--ckpt_file', type=str, default='checkpoints_till_22_jully/1000_videos_bbox_flow_128node_snapshot/best_auc_10.pth',
                         help='model file')
 
     p = parser.parse_args()

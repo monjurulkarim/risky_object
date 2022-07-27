@@ -54,7 +54,7 @@ def _load_checkpoint(model, optimizer=None, filename='checkpoint.pth.tar'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt_file', type=str, help="the path to the model file.",
-                        default="checkpoints/1000_videos_bbox_flow_128node_snapshot/best_auc_10.pth")
+                        default="checkpoints_till_22_jully/1000_videos_bbox_flow_128node_snapshot/best_auc_10.pth")
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
     parser.add_argument('--x_dim', type=int, default=2048,
