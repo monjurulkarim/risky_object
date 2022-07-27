@@ -17,7 +17,7 @@ def plot_auc_curve(fpr, tpr, roc_auc, epoch):
     curve_dir = 'charts/auc/'
     if not os.path.exists(curve_dir):
         os.makedirs(curve_dir)
-    auc_curve_file = os.path.join(curve_dir, 'auc_%02d.jpg' % (epoch))
+    auc_curve_file = os.path.join(curve_dir, 'auc_%02d.png' % (epoch))
 
     plt.title(f'Receiver Operating Characteristic at epoch: {epoch}')
     plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % roc_auc)
@@ -35,7 +35,7 @@ def plot_pr_curve(all_labels, all_pred, epoch):
     pr_dir = 'charts/pr/'
     if not os.path.exists(pr_dir):
         os.makedirs(pr_dir)
-    pr_curve_file = os.path.join(pr_dir, 'pr_%02d.jpg' % (epoch))
+    pr_curve_file = os.path.join(pr_dir, 'pr_%02d.png' % (epoch))
     precision, recall, thresholds = precision_recall_curve(np.array(all_labels), np.array(all_pred))
     ap = average_precision_score(np.array(all_labels), np.array(all_pred))
 

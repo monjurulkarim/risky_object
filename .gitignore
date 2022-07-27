@@ -6,6 +6,7 @@ feat_extract/feature/
 charts/
 archive/
 checkpoints/
+checkpoints_till_22_jully/
 models/__pycache__/
 
 /__pycache__
