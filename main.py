@@ -348,6 +348,8 @@ def test_eval():
     model = model.to(device=device)
     model.eval()
     model, _, _ = _load_checkpoint(model, filename=model_file)
+    print('Checkpoints loaded successfully')
+    print('Computing.........')
     losses_all, all_pred, all_labels = test_all(testdata_loader, model)
     k = 8
     loss_val = average_losses(losses_all)

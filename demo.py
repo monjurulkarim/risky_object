@@ -60,15 +60,19 @@ if __name__ == '__main__':
     parser.add_argument('--x_dim', type=int, default=2048,
                         help='dimension of the resnet output. Default: 2048')
     parser.add_argument('--feature_dir', type=str,
-                        help="the path to the feature file.", default="feat_extract/feature/dota_merged_their_style")
+                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_1000/val")
     parser.add_argument('--output_dir', type=str,
-                        help="the path to the feature file.", default="checkpoints/bbox_flow_output_dota/")
+                        help="the path to the feature file.", default="checkpoints/output/")
     p = parser.parse_args()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     # feature_files = glob.glob(os.path.join(p.feature_dir, '*.npz'))
     feature_files = os.listdir(p.feature_dir)
-
+# angle
+# others
+# Front-to-rear
+# sidewipe
+# Front-to-front
     for file in feature_files:
         feature_file = os.path.join(p.feature_dir, file)
         features, detection, toa, flow = load_input_data(feature_file, device=device)
