@@ -333,7 +333,7 @@ def test_eval():
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    test_data = MyDataset(data_path, 'val', toTensor=True, device=device)
+    test_data = MyDataset(data_path, 'val', toTensor=True, device=device)  # val
 
     testdata_loader = DataLoader(dataset=test_data, batch_size=p.batch_size,
                                  shuffle=False, drop_last=True)

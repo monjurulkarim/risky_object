@@ -60,9 +60,9 @@ if __name__ == '__main__':
     parser.add_argument('--x_dim', type=int, default=2048,
                         help='dimension of the resnet output. Default: 2048')
     parser.add_argument('--feature_dir', type=str,
-                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_1000/val")
+                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_1000")
     parser.add_argument('--output_dir', type=str,
-                        help="the path to the feature file.", default="checkpoints/output/")
+                        help="the path to the feature file.", default="checkpoints/output/rgb_flow_1000")
     p = parser.parse_args()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
