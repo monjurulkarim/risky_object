@@ -170,7 +170,7 @@ def train_eval():
 
     # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
     data_path = p.data_path
-    model_dir = os.path.join(p.output_dir, 'snapshot')
+    model_dir = os.path.join(p.output_dir, 'snapshot_both_attention_bbox_flow')
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     logs_dir = os.path.join(p.output_dir, 'logs')
@@ -186,7 +186,7 @@ def train_eval():
     current_time = time.strftime("%H-%M-%S", t)
 
     # optional
-    result_dir = os.path.join(p.output_dir, 'results')
+    result_dir = os.path.join(p.output_dir, 'results_both_attention_bbox_flow')
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
@@ -274,8 +274,8 @@ def train_eval():
         plot_auc_curve(fpr, tpr, roc_auc, k)
         ap = plot_pr_curve(all_labels, all_pred, k)
 
-        print(f"AUC : {roc_auc:.2f}")
-        print(f"AP : {ap:.2f}")
+        print(f"AUC : {roc_auc:.4f}")
+        print(f"AP : {ap:.4f}")
         # print('testing loss :', loss_val)
         # keep track of validation losses
         write_test_scalars(logger, k, loss_val, roc_auc, ap)
@@ -372,7 +372,7 @@ if __name__ == '__main__':
                         help='The batch size in training process. Default: 1')
     parser.add_argument('--base_lr', type=float, default=1e-3,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=20,
+    parser.add_argument('--epoch', type=int, default=40,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
