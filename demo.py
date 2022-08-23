@@ -54,15 +54,15 @@ def _load_checkpoint(model, optimizer=None, filename='checkpoint.pth.tar'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt_file', type=str, help="the path to the model file.",
-                        default="checkpoints_till_22_jully/1000_videos_bbox_flow_128node_snapshot/best_auc_10.pth")
+                        default="checkpoints/snapshot_attention_dota/best_ap.pth")
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
     parser.add_argument('--x_dim', type=int, default=2048,
                         help='dimension of the resnet output. Default: 2048')
     parser.add_argument('--feature_dir', type=str,
-                        help="the path to the feature file.", default="feat_extract/feature/rgb_flow_1000")
+                        help="the path to the feature file.", default="feat_extract/feature/dota/val")
     parser.add_argument('--output_dir', type=str,
-                        help="the path to the feature file.", default="checkpoints/output/rgb_flow_1000")
+                        help="the path to the feature file.", default="checkpoints/output/dota_experiment_best_ap")
     p = parser.parse_args()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -81,6 +81,11 @@ if __name__ == '__main__':
         flow = flow.unsqueeze(0)
 
         model = init_risky_object_model(p.ckpt_file, p.x_dim, p.h_dim, 100, 20)
+
+        # creating an output directory to save the results
+        if not os.path.exists(p.output_dir):
+            os.makedirs(p.output_dir)
+
         with torch.no_grad():
             losses, all_outputs, all_labels = model(features, detection, toa, flow)
             file_name = os.path.join(p.output_dir, file)

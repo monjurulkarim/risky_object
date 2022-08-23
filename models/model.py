@@ -106,10 +106,16 @@ class SpatialAttention(nn.Module):
 
         if len(v) != 0:
             h_in = torch.cat([element for element in v], dim=1)
+            print('h_in : ', h_in.shape)
             m = torch.tanh(h_in)
+            print('m : ', m.shape)
             alpha = torch.softmax(torch.matmul(m, self.weight), 1)
+            print('self.weight: ', self.weight.shape)
+            print('alpha : ', alpha.shape)
             roh = torch.mul(h_in, alpha)
-            weighted_h = torch.sum(roh, dim=1)
+            print('roh : ', roh.shape)
+            print('====================')
+            # weighted_h = torch.sum(roh, dim=1)
             # print('weighted_h shape: ', weighted_h.shape)
             list_roh = []
             for i in range(roh.size(1)):
@@ -154,6 +160,7 @@ class RiskyObject(nn.Module):
         :batchsize = 1, currently we support batchsize=1
         """
         losses = {'cross_entropy': 0}
+        print('x shape :', x.size(0))
         h = Variable(torch.zeros(self.n_layers, x.size(0),  self.h_dim)
                      )  # TO-DO: hidden_in like dsta
         h = h.to(x.device)

@@ -15,7 +15,7 @@ import glob
 
 
 # Directory of the npz results on DoTA dataset
-np_dir = '../checkpoints/output/dota_output_without_global'
+np_dir = '../checkpoints/output/dota_experiment_best_auc'
 
 np_files = glob.glob(os.path.join(np_dir, '*.npz'))
 all_pred = []

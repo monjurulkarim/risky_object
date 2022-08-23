@@ -170,7 +170,7 @@ def train_eval():
 
     # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
     data_path = p.data_path
-    model_dir = os.path.join(p.output_dir, 'snapshot_both_attention_bbox_flow')
+    model_dir = os.path.join(p.output_dir, 'snapshot_attention_dota')
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     logs_dir = os.path.join(p.output_dir, 'logs')
@@ -186,7 +186,7 @@ def train_eval():
     current_time = time.strftime("%H-%M-%S", t)
 
     # optional
-    result_dir = os.path.join(p.output_dir, 'results_both_attention_bbox_flow')
+    result_dir = os.path.join(p.output_dir, 'results_dota')
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
@@ -205,7 +205,7 @@ def train_eval():
 
     model = RiskyObject(p.x_dim, p.h_dim, n_frames, fps)
 
-    result_csv = os.path.join(result_dir, f'result_{date_saved}_{current_time}.csv')
+    result_csv = os.path.join(result_dir, f'result_attention_dota{date_saved}_{current_time}.csv')
     with open(result_csv, 'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerow([f"data_path: {data_path} "])
@@ -292,7 +292,7 @@ def train_eval():
         if roc_auc > auc_max:
             auc_max = roc_auc
             # model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-            model_file = os.path.join(model_dir, 'best_auc.pth' % (k))
+            model_file = os.path.join(model_dir, 'best_auc.pth')
             torch.save({'epoch': k,
                         'model': model.state_dict(),
                         'optimizer': optimizer.state_dict()}, model_file)
@@ -300,7 +300,7 @@ def train_eval():
         elif ap > ap_max:
             ap_max = ap
             # model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
-            model_file = os.path.join(model_dir, 'best_ap.pth' % (k))
+            model_file = os.path.join(model_dir, 'best_ap.pth')
             torch.save({'epoch': k,
                         'model': model.state_dict(),
                         'optimizer': optimizer.state_dict()}, model_file)
@@ -386,7 +386,7 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
-    parser.add_argument('--ckpt_file', type=str, default='checkpoints/snapshot_both_attention_bbox_flow/best_auc.pth',
+    parser.add_argument('--ckpt_file', type=str, default='checkpoints/snapshot_attention_dota/best_auc.pth',
                         help='model file')
 
     p = parser.parse_args()
