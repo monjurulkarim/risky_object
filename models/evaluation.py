@@ -38,7 +38,8 @@ def plot_pr_curve(all_labels, all_pred, epoch):
         os.makedirs(pr_dir)
     pr_curve_file = os.path.join(pr_dir, 'pr_%02d.png' % (epoch))
     precision, recall, thresholds = precision_recall_curve(np.array(all_labels), np.array(all_pred))
-    # np.savez('ap.npz', precision=precision, recall=recall, thresholds=thresholds)
+    # np.savez('ap_attention_bbox_flow.npz', precision=precision,
+    #          recall=recall, thresholds=thresholds)
     ap = average_precision_score(np.array(all_labels), np.array(all_pred))
 
     plt.title(f'Precision-Recall Curve at epoch: {epoch}')

@@ -329,9 +329,9 @@ def test_eval():
     # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
     data_path = p.data_path
 
-    result_dir = os.path.join(p.output_dir, 'test_results')
-    if not os.path.exists(result_dir):
-        os.makedirs(result_dir)
+    # result_dir = os.path.join(p.output_dir, 'test_results')
+    # if not os.path.exists(result_dir):
+    #     os.makedirs(result_dir)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -343,8 +343,6 @@ def test_eval():
     n_frames = 100  # unnecessary
     fps = 20  # unnecessary
 
-    # model_dir = os.path.join(p.output_dir, 'snapshot')
-    # model_file = os.path.join(model_dir, 'checkpoints/58_75/snapshot/best_ap_08.pth')
     model_file = p.ckpt_file  # directory of the model file
     model = RiskyObject(p.x_dim, p.h_dim, n_frames, fps)
     model = model.to(device=device)
@@ -386,7 +384,7 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
-    parser.add_argument('--ckpt_file', type=str, default='checkpoints/snapshot_attention_dota/best_auc.pth',
+    parser.add_argument('--ckpt_file', type=str, default='checkpoints/snapshot_both_attention_bbox_flow/best_ap.pth',
                         help='model file')
 
     p = parser.parse_args()
