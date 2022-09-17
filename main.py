@@ -329,13 +329,12 @@ def test_eval():
     # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
     data_path = p.data_path
 
-    # result_dir = os.path.join(p.output_dir, 'test_results')
-    # if not os.path.exists(result_dir):
-    #     os.makedirs(result_dir)
+
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     test_data = MyDataset(data_path, 'val', toTensor=True, device=device)  # val
+    # test_data = MyDataset(data_path, 'sidewipe', toTensor=True, device=device)  # val
 
     testdata_loader = DataLoader(dataset=test_data, batch_size=p.batch_size,
                                  shuffle=False, drop_last=True)
