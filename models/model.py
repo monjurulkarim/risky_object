@@ -139,8 +139,8 @@ class RiskyObject(nn.Module):
 
         # input dim 4
         self.gru_net_cor = CorGRU(4, self.h_dim_cor, self.n_layers_cor)
-        self.soft_attention = SpatialAttention(h_dim)
-        self.soft_attention_cor = SpatialAttention(self.h_dim_cor)
+        # self.soft_attention = SpatialAttention(h_dim)
+        # self.soft_attention_cor = SpatialAttention(self.h_dim_cor)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=self.weight, reduction='mean')
 
     def forward(self, x, y, toa, flow, hidden_in=None, testing=False):
@@ -262,16 +262,15 @@ class RiskyObject(nn.Module):
                         h_all_out[track_id] = h_out  # storing in a dictionary
                         h_all_out_cor[track_id] = h_out_cor
 
-
             all_outputs.append(frame_outputs)
             all_labels.append(frame_labels)
             h_all_in = {}
             h_all_in = h_all_out.copy()
 
-            h_all_in = self.soft_attention(h_all_in)
+            # h_all_in = self.soft_attention(h_all_in)
 
             h_all_in_cor = {}
             h_all_in_cor = h_all_out_cor.copy()
-            h_all_in_cor = self.soft_attention_cor(h_all_in_cor)
+            # h_all_in_cor = self.soft_attention_cor(h_all_in_cor)
 
         return losses, all_outputs, all_labels
