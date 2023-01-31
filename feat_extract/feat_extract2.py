@@ -40,11 +40,11 @@ def log_information(vid_id, video_frame, track_id, e):
 def get_args():
     parser = argparse.ArgumentParser()
     # csv files of each videos, contain tracking, bbox, etc information (generated with det_csv.py)
-    parser.add_argument("--csv_dir", default="new_csv_val/")
+    parser.add_argument("--csv_dir", default="hevi_csv_train/")
     # contains the folderwise video frames
-    parser.add_argument("--data_dir", default="data/new_val_flow_frame/")
+    parser.add_argument("--data_dir", default="data/hevi_flow_images_train/")
     # extracted resnet50 features will be stored here in *.npz format
-    parser.add_argument("--feature_dir", default="feature/new_feat_val/")
+    parser.add_argument("--feature_dir", default="feature/hevi_feat_train/")
     args = parser.parse_args()
     return args
 
@@ -78,15 +78,14 @@ def main():
     data_dir = args.data_dir
     feature_dir = args.feature_dir
     csv_files = natsorted(glob.glob(os.path.join(csv_dir, '*.csv')))
-    csv_files = csv_files[1:]
-
+    csv_files = csv_files[184:242]
 
 
     # print(csv_files)
-    scaling_w = 4.82  # 1080/224
-    scaling_h = 3.21  # 720/224
-    # scaling_w = 8.57  # 1920/224
-    # scaling_h = 5.36  # 1200/224
+    # scaling_w = 4.82  # 1080/224
+    # scaling_h = 3.21  # 720/224
+    scaling_w = 8.57  # 1920/224
+    scaling_h = 5.36  # 1200/224
     count = 0
     for i in csv_files:
         # 100 frames, 30 maximum objects, 6: 1-> track_id, (2,3,4,5)-> (y1,x1;y2,x2), 6-> object serial number in each frame
@@ -117,12 +116,8 @@ def main():
         df = df.reset_index()
         for index, row in df.iterrows():
             # print(row)
-            try:
-                detections[row['frame'], row['object_num']
-                           ] = row['track_id'], row['y1'], row['x1'], row['y2'], row['x2'], row['label']
-            except IndexError:
-                print('=====Index error=====', vid_id)
-                continue
+            detections[row['frame'], row['object_num']
+                       ] = row['track_id'], row['y1'], row['x1'], row['y2'], row['x2'], row['label']
             f_num = row['frame']
             video_frame = video_frames[f_num]
             if row['object_num'] > 29:
@@ -150,7 +145,7 @@ def main():
         save_file = feature_dir + vid_id+'.npz'
         np.savez_compressed(save_file, feature=feature,
                             detection=detections, vid_id=vid_id, toa=toa)
-        count +=1
+        count += 1
 
 if __name__ == '__main__':
     main()

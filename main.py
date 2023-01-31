@@ -170,7 +170,7 @@ def train_eval():
 
     # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
     data_path = p.data_path
-    model_dir = os.path.join(p.output_dir, 'snapshot_attention_dota')
+    model_dir = os.path.join(p.output_dir, 'snapshot_attention_')
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     logs_dir = os.path.join(p.output_dir, 'logs')

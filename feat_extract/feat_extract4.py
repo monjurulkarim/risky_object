@@ -13,7 +13,7 @@ from src.model import FeatureExtractor
 from PIL import Image
 import argparse
 import logging
-device = ("cuda:0" if torch.cuda.is_available() else "cpu")
+device = ("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
 transform = transforms.Compose(
@@ -40,11 +40,11 @@ def log_information(vid_id, video_frame, track_id, e):
 def get_args():
     parser = argparse.ArgumentParser()
     # csv files of each videos, contain tracking, bbox, etc information (generated with det_csv.py)
-    parser.add_argument("--csv_dir", default="new_csv_val/")
+    parser.add_argument("--csv_dir", default="hevi_csv_train/")
     # contains the folderwise video frames
-    parser.add_argument("--data_dir", default="data/new_val_flow_frame/")
+    parser.add_argument("--data_dir", default="data/hevi_flow_images_train/")
     # extracted resnet50 features will be stored here in *.npz format
-    parser.add_argument("--feature_dir", default="feature/new_feat_val/")
+    parser.add_argument("--feature_dir", default="feature/hevi_feat_train/")
     args = parser.parse_args()
     return args
 
@@ -78,16 +78,14 @@ def main():
     data_dir = args.data_dir
     feature_dir = args.feature_dir
     csv_files = natsorted(glob.glob(os.path.join(csv_dir, '*.csv')))
-    csv_files = csv_files[1:]
-
-
+    csv_files = csv_files[363:]
 
     # print(csv_files)
-    scaling_w = 4.82  # 1080/224
-    scaling_h = 3.21  # 720/224
-    # scaling_w = 8.57  # 1920/224
-    # scaling_h = 5.36  # 1200/224
-    count = 0
+    # scaling_w = 4.82  # 1080/224
+    # scaling_h = 3.21  # 720/224
+    scaling_w = 8.57  # 1920/224
+    scaling_h = 5.36  # 1200/224
+
     for i in csv_files:
         # 100 frames, 30 maximum objects, 6: 1-> track_id, (2,3,4,5)-> (y1,x1;y2,x2), 6-> object serial number in each frame
         detections = np.zeros((100, 30, 6), dtype=np.float32)
@@ -102,7 +100,7 @@ def main():
         if len(video_frames) == 0:
             print('Frames not found in ', vid_id)
             continue
-        print(count ,' : ', vid_id, '===================')
+        print('========', vid_id, '===================')
         for j in range(len(video_frames)):
             img_path = video_frames[j]
             image = Image.open(img_path)
@@ -150,7 +148,7 @@ def main():
         save_file = feature_dir + vid_id+'.npz'
         np.savez_compressed(save_file, feature=feature,
                             detection=detections, vid_id=vid_id, toa=toa)
-        count +=1
+
 
 if __name__ == '__main__':
     main()
