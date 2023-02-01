@@ -134,7 +134,7 @@ class RiskyObject(nn.Module):
         # for secondary GRU
         self.n_layers_cor = 1
         self.h_dim_cor = 32
-        self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers, self.h_dim_cor)
+        self.gru_net = GRUNet(h_dim, h_dim, 2, self.n_layers, self.h_dim_cor)
         self.weight = torch.Tensor([0.25, 1]).cuda()  # TO-DO: find the correct weight
 
         # input dim 4
@@ -175,7 +175,8 @@ class RiskyObject(nn.Module):
             img_embed = x_val[:, 0, :].unsqueeze(1)  # 1 x 1 x 256
             img_embed = img_embed.repeat(1, 30, 1)  # 1 x 30 x 256
             obj_embed = x_val[:, 1:, :]   # 1 x 30 x 256
-            x_t = torch.cat([obj_embed, img_embed], dim=-1)  # 1 x 30 x 512
+            # x_t = torch.cat([obj_embed, img_embed], dim=-1)  # 1 x 30 x 512
+            x_t = obj_embed  # 1 x 30 x 256
 
             h_all_out = {}
             h_all_out_cor = {}
