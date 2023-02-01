@@ -134,7 +134,7 @@ class RiskyObject(nn.Module):
         # for secondary GRU
         self.n_layers_cor = 1
         self.h_dim_cor = 32
-        self.gru_net = GRUNet(h_dim, h_dim, 2, self.n_layers, self.h_dim_cor)
+        self.gru_net = GRUNet(h_dim+h_dim, h_dim, 2, self.n_layers, self.h_dim_cor)
         self.weight = torch.Tensor([0.25, 1]).cuda()  # TO-DO: find the correct weight
 
         # input dim 4
@@ -160,23 +160,32 @@ class RiskyObject(nn.Module):
         # hidden representation for secondary gru
         h_all_in_cor = {}
         h_all_out_cor = {}
-        # h_all_in_flow = {}
-        # h_all_out_flow = {}
+        h_all_in_flow = {}
+        h_all_out_flow = {}
 
         all_outputs = []
         all_labels = []
 
         for t in range(x.size(1)):
             # projecting to a lower dimensional space
+            rgb = x[:,t]
             inp = flow[:, t]  # 1 x31 x2048
+
+            #RGB------------------------------
+            r_val = self.phi_x(rgb)  # 1 x 31 x 256  #rgb_d
+            r_img_embed = r_val[:, 0, :].unsqueeze(1)  # 1 x 1 x 256
+            r_img_embed = r_img_embed.repeat(1, 30, 1)  # 1 x 30 x 256
+            r_obj_embed = r_val[:, 1:, :]   # 1 x 30 x 256
+            r_t = torch.cat([r_obj_embed, r_img_embed], dim=-1)  # 1 x 30 x 512
+
 
             # Flow----------------
             x_val = self.phi_x(inp)  # 1 x 31 x 256  #rgb_d
             img_embed = x_val[:, 0, :].unsqueeze(1)  # 1 x 1 x 256
             img_embed = img_embed.repeat(1, 30, 1)  # 1 x 30 x 256
             obj_embed = x_val[:, 1:, :]   # 1 x 30 x 256
-            # x_t = torch.cat([obj_embed, img_embed], dim=-1)  # 1 x 30 x 512
-            x_t = obj_embed  # 1 x 30 x 256
+            x_t = torch.cat([obj_embed, img_embed], dim=-1)  # 1 x 30 x 512
+
 
             h_all_out = {}
             h_all_out_cor = {}
@@ -189,6 +198,17 @@ class RiskyObject(nn.Module):
                 else:
                     track_id = str(y[0][t][bbox][0].cpu().detach().numpy())
                     if track_id in h_all_in:
+                        # flow GRU
+                        h_in_flow = h_all_in_flow[track_id]  # 1x1x256
+                        # x_obj = x_t[0][t][bbox]  # 4096 # x_t[batch][frame][bbox]
+                        x_obj_flow = r_t[0][bbox]  # 4096 # x_t[batch][frame][bbox]
+                        x_obj_flow = torch.unsqueeze(x_obj_flow, 0)  # 1 x 512
+                        x_obj_flow = torch.unsqueeze(x_obj_flow, 0)  # 1 x 1 x 512
+
+                        output_flow, h_out_flow = self.gru_net_flow(
+                            x_obj_flow, h_in_flow)  # 1x1x256
+
+                        h_all_out_flow[track_id] = h_out_flow
 
                         # secondary GRU-----------------------------------
                         # decoding the coordinate with a secondary GRU model
