@@ -329,8 +329,6 @@ def test_eval():
     # data_path = os.path.join(ROOT_PATH, p.data_path, p.dataset)
     data_path = p.data_path
 
-
-
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     test_data = MyDataset(data_path, 'val', toTensor=True, device=device)  # val
@@ -383,7 +381,7 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
-    parser.add_argument('--ckpt_file', type=str, default='checkpoints/snapshot_both_attention_bbox_flow/best_ap.pth',
+    parser.add_argument('--ckpt_file', type=str, default='checkpoints/new_data_snapshot/best_auc.pth',
                         help='model file')
 
     p = parser.parse_args()
