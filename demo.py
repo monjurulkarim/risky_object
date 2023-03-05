@@ -10,6 +10,7 @@ import argparse
 import os
 import numpy as np
 import sys
+os.environ['CUDA_VISIBLE_DEVICES'] = '2'
 
 
 def init_risky_object_model(model_file, x_dim, h_dim, n_frames, fps):
@@ -54,7 +55,7 @@ def _load_checkpoint(model, optimizer=None, filename='checkpoint.pth.tar'):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt_file', type=str, help="the path to the model file.",
-                        default="checkpoints/new_data_snapshot/best_auc.pth")
+                        default="checkpoints/snapshot_ablation_10/best_ap.pth")
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
     parser.add_argument('--x_dim', type=int, default=2048,
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--feature_dir', type=str,
                         help="the path to the feature file.", default="feat_extract/feature/rgb_flow_1000/val")
     parser.add_argument('--output_dir', type=str,
-                        help="the path to the feature file.", default="checkpoints/output/manner/others")
+                        help="the path to the feature file.", default="checkpoints/output/ablation_10_ap")
     p = parser.parse_args()
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 

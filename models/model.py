@@ -27,8 +27,8 @@ class GRUNet(nn.Module):
                 nn.init.kaiming_normal_(param)
             elif 'weight_hh' in name:
                 nn.init.orthogonal_(param)
-        self.dense1 = torch.nn.Linear(hidden_dim+output_cor_dim, 128)
-        self.dense2 = torch.nn.Linear(128, output_dim)
+        self.dense1 = torch.nn.Linear(hidden_dim+output_cor_dim, 256)
+        self.dense2 = torch.nn.Linear(256, output_dim)
         self.relu = nn.ReLU()
 
     def forward(self, x, h, output_cor):
@@ -261,7 +261,6 @@ class RiskyObject(nn.Module):
                         frame_labels.append(y[0][t][bbox][5].detach().cpu().numpy())
                         h_all_out[track_id] = h_out  # storing in a dictionary
                         h_all_out_cor[track_id] = h_out_cor
-
 
             all_outputs.append(frame_outputs)
             all_labels.append(frame_labels)
