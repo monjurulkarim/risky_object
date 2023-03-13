@@ -16,7 +16,7 @@ import os
 from tensorboardX import SummaryWriter
 import numpy as np
 import csv
-os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 # optional
 
@@ -204,7 +204,7 @@ def train_eval():
 
     n_frames = 100
     fps = 20
-
+    model_file = p.ckpt_file
     model = RiskyObject(p.x_dim, p.h_dim, n_frames, fps)
 
     result_csv = os.path.join(result_dir, f'result_ablation_10_{date_saved}_{current_time}.csv')
@@ -228,6 +228,8 @@ def train_eval():
     start_epoch = -1
     # resume training
     # -----------------
+    if p.resume:
+        model, optimizer, start_epoch = _load_checkpoint(model, optimizer = optimizer,  filename=model_file)
     # TO-DO:
     # -----------------
     # write histograms
@@ -239,6 +241,24 @@ def train_eval():
     # optional
     # roc_auc = 0
     # ap = 0
+    # print(model)
+    # for name, param in model.named_parameters():
+    #     print(name)
+    # sys.exit(1)
+
+    if p.tl:
+        for name, param in model.named_parameters():
+            if 'dense1'in name or 'dense2' in name or 'soft_attention' in name or 'soft_attention_cor' in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+
+    # for name, param in model.named_parameters():
+    #     if param.requires_grad:
+    #         print(name)
+
+
+
 
     for k in range(p.epoch):
         loop = tqdm(enumerate(traindata_loader), total=len(traindata_loader))
@@ -289,24 +309,31 @@ def train_eval():
         model.train()
 
         # write_pr_curve_tensorboard(logger, all_pred, all_labels)
+        model_file = os.path.join(model_dir, 'model_%02d.pth' % (k))
 
+        torch.save({'epoch': k,
+                    'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict()}, model_file)
+
+        ##########################################################################
         # save model
-        if roc_auc > auc_max:
-            auc_max = roc_auc
-            # model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-            model_file = os.path.join(model_dir, 'best_auc.pth')
-            torch.save({'epoch': k,
-                        'model': model.state_dict(),
-                        'optimizer': optimizer.state_dict()}, model_file)
-            print('Best AUC Model has been saved as: %s' % (model_file))
-        elif ap > ap_max:
-            ap_max = ap
-            # model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
-            model_file = os.path.join(model_dir, 'best_ap.pth')
-            torch.save({'epoch': k,
-                        'model': model.state_dict(),
-                        'optimizer': optimizer.state_dict()}, model_file)
-            print('Best AP Model has been saved as: %s' % (model_file))
+        # if roc_auc > auc_max:
+        #     auc_max = roc_auc
+        #     # model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+        #     model_file = os.path.join(model_dir, 'best_auc.pth')
+        #     torch.save({'epoch': k,
+        #                 'model': model.state_dict(),
+        #                 'optimizer': optimizer.state_dict()}, model_file)
+        #     print('Best AUC Model has been saved as: %s' % (model_file))
+        # elif ap > ap_max:
+        #     ap_max = ap
+        #     # model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
+        #     model_file = os.path.join(model_dir, 'best_ap.pth')
+        #     torch.save({'epoch': k,
+        #                 'model': model.state_dict(),
+        #                 'optimizer': optimizer.state_dict()}, model_file)
+        #     print('Best AP Model has been saved as: %s' % (model_file))
+        ###########################################################################
         scheduler.step(losses['cross_entropy'])
         # write histograms
         write_weight_histograms(logger, model, k+1)
@@ -365,13 +392,13 @@ def test_eval():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_flow_1000',
+    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/dota',
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 1')
     parser.add_argument('--base_lr', type=float, default=1e-3,
                         help='The base learning rate. Default: 1e-3')
-    parser.add_argument('--epoch', type=int, default=27,
+    parser.add_argument('--epoch', type=int, default=22,
                         help='The number of training epoches. Default: 30')
     parser.add_argument('--h_dim', type=int, default=256,
                         help='hidden dimension of the gru. Default: 256')
@@ -383,8 +410,12 @@ if __name__ == '__main__':
                         help='The relative path of dataset.')
     parser.add_argument('--test_iter', type=int, default=1,
                         help='The number of epochs to perform a evaluation process. Default: 64')
-    parser.add_argument('--ckpt_file', type=str, default='checkpoints/snapshot_ablation_10/best_auc.pth',
+    parser.add_argument('--ckpt_file', type=str, default='checkpoints/archive_March_6_23/snapshot_ablation_10/best_auc.pth',
                         help='model file')
+    parser.add_argument('--resume', action='store_true',
+                        help='If to resume the training. Default: False')
+    parser.add_argument('--tl', action='store_true',
+                        help='If want transfer learning. Default: False')
 
     p = parser.parse_args()
     if p.phase == 'test':
