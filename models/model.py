@@ -27,8 +27,8 @@ class GRUNet(nn.Module):
                 nn.init.kaiming_normal_(param)
             elif 'weight_hh' in name:
                 nn.init.orthogonal_(param)
-        self.dense1 = torch.nn.Linear(hidden_dim+output_cor_dim, 128)
-        self.dense2 = torch.nn.Linear(128, output_dim)
+        self.dense1 = torch.nn.Linear(hidden_dim+output_cor_dim, 256)
+        self.dense2 = torch.nn.Linear(256, output_dim)
         self.relu = nn.ReLU()
 
     def forward(self, x, h, output_cor):
