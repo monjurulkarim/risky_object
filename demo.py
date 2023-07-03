@@ -10,7 +10,7 @@ import argparse
 import os
 import numpy as np
 import sys
-os.environ['CUDA_VISIBLE_DEVICES'] = '7'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 
 def init_risky_object_model(model_file, x_dim, h_dim, n_frames, fps):

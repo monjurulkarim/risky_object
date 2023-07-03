@@ -16,7 +16,7 @@ import os
 from tensorboardX import SummaryWriter
 import numpy as np
 import csv
-os.environ['CUDA_VISIBLE_DEVICES'] = '7'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '7'
 
 # optional
 
@@ -317,22 +317,22 @@ def train_eval():
 
         ##########################################################################
         # save model
-        # if roc_auc > auc_max:
-        #     auc_max = roc_auc
-        #     # model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
-        #     model_file = os.path.join(model_dir, 'best_auc.pth')
-        #     torch.save({'epoch': k,
-        #                 'model': model.state_dict(),
-        #                 'optimizer': optimizer.state_dict()}, model_file)
-        #     print('Best AUC Model has been saved as: %s' % (model_file))
-        # elif ap > ap_max:
-        #     ap_max = ap
-        #     # model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
-        #     model_file = os.path.join(model_dir, 'best_ap.pth')
-        #     torch.save({'epoch': k,
-        #                 'model': model.state_dict(),
-        #                 'optimizer': optimizer.state_dict()}, model_file)
-        #     print('Best AP Model has been saved as: %s' % (model_file))
+        if roc_auc > auc_max:
+            auc_max = roc_auc
+            # model_file = os.path.join(model_dir, 'best_auc_%02d.pth' % (k))
+            model_file = os.path.join(model_dir, 'best_auc.pth')
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AUC Model has been saved as: %s' % (model_file))
+        elif ap > ap_max:
+            ap_max = ap
+            # model_file = os.path.join(model_dir, 'best_ap_%02d.pth' % (k))
+            model_file = os.path.join(model_dir, 'best_ap.pth')
+            torch.save({'epoch': k,
+                        'model': model.state_dict(),
+                        'optimizer': optimizer.state_dict()}, model_file)
+            print('Best AP Model has been saved as: %s' % (model_file))
         ###########################################################################
         scheduler.step(losses['cross_entropy'])
         # write histograms
@@ -392,7 +392,7 @@ def test_eval():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/dota',
+    parser.add_argument('--data_path', type=str, default='./feat_extract/feature/rgb_flow_1000',
                         help='The relative path of dataset.')
     parser.add_argument('--batch_size', type=int, default=1,
                         help='The batch size in training process. Default: 1')
