@@ -38,7 +38,19 @@ python demo.py
 
 ### 3.  Pre-trained Models
 > * [**Pre-trained AM-Net Models**](https://drive.google.com/drive/folders/1zv_1h8zBocywhU5fsPeKtbxTp7xlMZYL?usp=sharing): You can also download and use the pre-trained weights of AM-Net. The pretrained model weights are intended for testing and demo purposes. To utilize the pre-trained model for testing, please download it and ensure it is placed in the appropriate directory.
+>
 
+### 4.  Reproducing DoTA Results:
+> * You can find our processed DoTA datasets [Here](https://drive.google.com/drive/u/2/folders/1lcHj6Pij03ludSgAKB7pLclwxO_KXepU)
+>
+To reproduce the results reported in our paper on the DoTA dataset, please fine-tune the entire network using the `train` data in the above link. 
+Then, use the model at epoch 16 for evaluating the performance. Additionally, consider experimenting with other epochs as well, as this may lead to even better results.
+
+```
+Please note that the statement in our paper regarding achieving the results on DoTA dataset,
+'Specifically, the final fully connected layers were fine-tuned,' is incorrect.
+Following the above steps will ensure that you can replicate our reported results.
+```
 
 <a name="citation"></a>
 ## Citation
